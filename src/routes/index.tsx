@@ -89,6 +89,10 @@ function Index() {
   }, []);
 
   useEffect(() => {
+    localStorage.setItem("aura-farming-votes", JSON.stringify(voted));
+  }, [voted]);
+
+  useEffect(() => {
     let cancelled = false;
     supabase
       .from("players")
