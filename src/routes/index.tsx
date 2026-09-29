@@ -339,7 +339,7 @@ function Index() {
                 >
                   <div className="flex items-center gap-3 px-4 pt-4">
                     <img
-                      src={ICONS[player.icon] ?? iconFaker}
+                      src={player.icon.startsWith("http") ? player.icon : (ICONS[player.icon] ?? iconFaker)}
                       alt={`Ícone de ${player.name}`}
                       loading="lazy"
                       width={48}
@@ -362,7 +362,7 @@ function Index() {
                     <div className="flex items-baseline justify-between">
                       <span
                         key={player.aura}
-                        className={`text-2xl font-bold tabular-nums text-sigilsoft ${
+                        className={`text-2xl font-bold tabular-nums ${player.aura < 0 ? "text-destructive" : "text-sigilsoft"} ${
                           ticked === player.id ? "animate-aura-tick" : ""
                         }`}
                       >
@@ -376,7 +376,7 @@ function Index() {
                       <div
                         className="h-full bg-gradient-to-r from-sigil to-crest transition-all duration-500"
                         style={{
-                          width: `${Math.max(4, Math.round((player.aura / maxAura) * 100))}%`,
+                          width: `${Math.max(4, Math.round((Math.abs(player.aura) / maxAura) * 100))}%`,
                         }}
                       />
                     </div>
