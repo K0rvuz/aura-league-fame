@@ -14,13 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      aura_votes: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          player_id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          player_id: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          player_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aura_votes_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          aura: number
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          rank_label: string
+        }
+        Insert: {
+          aura?: number
+          created_at?: string
+          icon?: string
+          id?: string
+          name: string
+          rank_label?: string
+        }
+        Update: {
+          aura?: number
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          rank_label?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      vote_aura: {
+        Args: { p_delta: number; p_player_id: string; p_session_id: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
