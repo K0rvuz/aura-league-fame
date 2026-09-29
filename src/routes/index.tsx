@@ -71,7 +71,14 @@ function formatDelta(d: number): string {
 function Index() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
-  const [voted, setVoted] = useState<Record<string, number>>({});
+  const [voted, setVoted] = useState<Record<string, number>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      return JSON.parse(localStorage.getItem("aura-farming-votes") ?? "{}");
+    } catch {
+      return {};
+    }
+  });
   const [pending, setPending] = useState<string | null>(null);
   const [ticked, setTicked] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
