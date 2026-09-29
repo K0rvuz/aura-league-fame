@@ -53,7 +53,9 @@ export type Database = {
           icon: string
           id: string
           name: string
+          puuid: string | null
           rank_label: string
+          region: string | null
         }
         Insert: {
           aura?: number
@@ -61,7 +63,9 @@ export type Database = {
           icon?: string
           id?: string
           name: string
+          puuid?: string | null
           rank_label?: string
+          region?: string | null
         }
         Update: {
           aura?: number
@@ -69,7 +73,9 @@ export type Database = {
           icon?: string
           id?: string
           name?: string
+          puuid?: string | null
           rank_label?: string
+          region?: string | null
         }
         Relationships: []
       }

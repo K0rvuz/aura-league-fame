@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { addRiotPlayer, REGIONS } from "@/lib/players.functions";
 
 import iconFaker from "@/assets/icon-faker.jpg";
 import iconCaps from "@/assets/icon-caps.jpg";
@@ -82,6 +84,11 @@ function Index() {
   const [pending, setPending] = useState<string | null>(null);
   const [ticked, setTicked] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [riotId, setRiotId] = useState("");
+  const [region, setRegion] = useState("BR1");
+  const [adding, setAdding] = useState(false);
+  const [addMsg, setAddMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const addPlayerFn = useServerFn(addRiotPlayer);
 
   const sessionId = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -105,6 +112,18 @@ function Index() {
 
     const channel = supabase
       .channel("players-aura")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "players" },
+        (payload) => {
+          const row = payload.new as Player;
+          setPlayers((prev) =>
+            prev.some((p) => p.id === row.id)
+              ? prev
+              : [...prev, row].sort((a, b) => b.aura - a.aura),
+          );
+        },
+      )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "players" },
@@ -158,8 +177,29 @@ function Index() {
     setTimeout(() => setTicked(null), 700);
   }
 
+  async function submitPlayer(e: React.FormEvent) {
+    e.preventDefault();
+    if (!/^[^#]{3,16}#[^#]{2,5}$/.test(riotId.trim())) {
+      setAddMsg({ ok: false, text: "Use o formato Nick#TAG." });
+      return;
+    }
+    setAdding(true);
+    setAddMsg(null);
+    try {
+      const res = await addPlayerFn({ data: { riotId: riotId.trim(), region } });
+      if (res.ok) {
+        setAddMsg({ ok: true, text: `${res.name} entrou no board. Bora farmar aura!` });
+        setRiotId("");
+      } else setAddMsg({ ok: false, text: res.error });
+    } catch {
+      setAddMsg({ ok: false, text: "Algo deu errado. Tenta de novo." });
+    } finally {
+      setAdding(false);
+    }
+  }
+
   const totalAura = players.reduce((sum, p) => sum + p.aura, 0);
-  const maxAura = players.length ? Math.max(...players.map((p) => p.aura), 1) : 1;
+  const maxAura = players.length ? Math.max(...players.map((p) => Math.abs(p.aura)), 1) : 1;
 
   return (
     <div className="min-h-screen bg-void text-ink selection:bg-crest/30">
@@ -233,6 +273,41 @@ function Index() {
           </div>
         </section>
 
+        <form
+          onSubmit={submitPlayer}
+          className="mt-10 flex flex-col gap-2 border border-sigil/40 bg-abyss/50 p-4 sm:flex-row sm:items-center"
+        >
+          <div className="text-xs uppercase tracking-[0.25em] text-sigil sm:mr-2">
+            Adicionar player
+          </div>
+          <input
+            value={riotId}
+            onChange={(e) => setRiotId(e.target.value)}
+            placeholder="Nick#TAG"
+            className="flex-1 border border-hexline/70 bg-steel/40 px-3 py-2 text-sm text-ink placeholder:text-mist/60 focus:border-sigil focus:outline-none"
+          />
+          <select
+            value={region}
+            onChange={(e) => setRegion(e.target.value)}
+            className="border border-hexline/70 bg-steel/40 px-3 py-2 text-sm text-ink"
+          >
+            {REGIONS.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+          <button
+            disabled={adding}
+            className="border border-sigil/60 bg-sigil/15 px-4 py-2 text-sm font-semibold text-sigilsoft hover:bg-sigil/25 disabled:opacity-50"
+          >
+            {adding ? "Verificando…" : "Invocar"}
+          </button>
+        </form>
+        {addMsg && (
+          <div className={`mt-2 text-sm ${addMsg.ok ? "text-crest" : "text-destructive"}`}>
+            {addMsg.text}
+          </div>
+        )}
+
         <div className="mb-6 mt-12 flex items-center justify-between">
           <h2 className="text-sm uppercase tracking-[0.35em] text-mist">
             Top aura · ao vivo
@@ -264,7 +339,7 @@ function Index() {
                 >
                   <div className="flex items-center gap-3 px-4 pt-4">
                     <img
-                      src={ICONS[player.icon] ?? iconFaker}
+                      src={player.icon.startsWith("http") ? player.icon : (ICONS[player.icon] ?? iconFaker)}
                       alt={`Ícone de ${player.name}`}
                       loading="lazy"
                       width={48}
@@ -287,7 +362,7 @@ function Index() {
                     <div className="flex items-baseline justify-between">
                       <span
                         key={player.aura}
-                        className={`text-2xl font-bold tabular-nums text-sigilsoft ${
+                        className={`text-2xl font-bold tabular-nums ${player.aura < 0 ? "text-destructive" : "text-sigilsoft"} ${
                           ticked === player.id ? "animate-aura-tick" : ""
                         }`}
                       >
@@ -301,7 +376,7 @@ function Index() {
                       <div
                         className="h-full bg-gradient-to-r from-sigil to-crest transition-all duration-500"
                         style={{
-                          width: `${Math.max(4, Math.round((player.aura / maxAura) * 100))}%`,
+                          width: `${Math.max(4, Math.round((Math.abs(player.aura) / maxAura) * 100))}%`,
                         }}
                       />
                     </div>
