@@ -16,16 +16,16 @@ globalRateLimit.auraRateLimitBuckets = buckets;
 function getClientIp(): string {
   const request = getRequest();
 
-  // Render documents x-forwarded-for as the client-IP source for web services.
-  // Prefer Cloudflare's connecting IP when present, then Render's forwarded value.
+  // Render's public web services sit behind Cloudflare. Render documents
+  // CF-Connecting-IP as the trusted real-client-IP header at this edge.
   const cloudflareIp = request.headers.get("cf-connecting-ip")?.trim();
   if (cloudflareIp) return cloudflareIp;
 
+  // Fallback for local development / alternate proxies.
   const forwarded = request.headers.get("x-forwarded-for");
-  const firstForwarded = forwarded?.split(",")[0]?.trim();
-  if (firstForwarded) return firstForwarded;
+  const fallbackIp = forwarded?.split(",").at(-1)?.trim();
 
-  return request.headers.get("x-real-ip")?.trim() || "unknown";
+  return fallbackIp || request.headers.get("x-real-ip")?.trim() || "unknown";
 }
 
 function sweepExpired(now: number): void {
@@ -43,8 +43,7 @@ export function assertRateLimit(key: string, max: number, windowMs: number): voi
   const now = Date.now();
   sweepExpired(now);
 
-  const ip = getClientIp();
-  const bucketKey = `${key}:${ip}`;
+  const bucketKey = `${key}:${getClientIp()}`;
   const current = buckets.get(bucketKey);
 
   if (!current || current.resetAt <= now) {

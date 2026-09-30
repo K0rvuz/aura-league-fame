@@ -1,15 +1,30 @@
+databases:
+  - name: aura-postgres
+    databaseName: aura_farming
+    user: aura_farming
+    region: virginia
+    plan: 0.5c-1g
+    postgresMajorVersion: "18"
+    connectionPool: pgbouncer
+    ipAllowList: []
+
 services:
   - type: web
     name: aura-league-fame
     runtime: node
-    plan: 0.5c-512mb
+    region: virginia
+    plan: 1c-2g
 
     buildCommand: npm ci && npm run build
     startCommand: npm start
-
     autoDeployTrigger: commit
 
     envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aura-postgres
+          property: connectionPoolString
+
       - key: NITRO_PRESET
         value: render-com
 
@@ -21,8 +36,3 @@ services:
 
       - key: RIOT_API_KEY
         sync: false
-
-    disk:
-      name: aura-data
-      mountPath: /opt/render/project/src/data
-      sizeGB: 1

@@ -36,13 +36,12 @@ export const getPlayers = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }) => {
     const [{ listPlayers }, { assertRateLimit }] = await Promise.all([
-      import("@/lib/local-db"),
+      import("@/lib/postgres-db.server"),
       import("@/lib/rate-limit.server"),
     ]);
 
-    // Current UI polls every 5s (~12/min/tab). This leaves plenty of room for
-    // normal browsing while limiting abusive request floods from one IP.
-    assertRateLimit("players:list", 120, 60_000);
+    // Large headroom for shared Wi-Fi/CGNAT during an event.
+    assertRateLimit("players:list", 3_000, 60_000);
 
     return listPlayers(data.search.trim(), data.page);
   });
@@ -56,12 +55,12 @@ export const voteAura = createServerFn({ method: "POST" })
   .validator((data) => voteSchema.parse(data))
   .handler(async ({ data }) => {
     const [{ castVote }, { assertRateLimit }] = await Promise.all([
-      import("@/lib/local-db"),
+      import("@/lib/postgres-db.server"),
       import("@/lib/rate-limit.server"),
     ]);
 
-    // Refresh-to-vote remains supported, but automated floods are throttled.
-    assertRateLimit("players:vote", 30, 60_000);
+    // Refresh-to-vote remains allowed. This is flood protection, not identity/auth.
+    assertRateLimit("players:vote", 600, 60_000);
 
     return castVote(data.playerId, data.delta);
   });
@@ -70,8 +69,6 @@ export const addRiotPlayer = createServerFn({ method: "POST" })
   .validator((d) => schema.parse(d))
   .handler(async ({ data }) => {
     const { assertRateLimit } = await import("@/lib/rate-limit.server");
-
-    // Player creation is expensive and hits the Riot API, so keep it strict.
     assertRateLimit("players:add", 10, 60 * 60_000);
 
     const key = process.env["RIOT_API_KEY"];
@@ -84,10 +81,7 @@ export const addRiotPlayer = createServerFn({ method: "POST" })
     try {
       const accRes = await fetch(
         `https://${cluster}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
-        {
-          headers,
-          signal: AbortSignal.timeout(8_000),
-        },
+        { headers, signal: AbortSignal.timeout(8_000) },
       );
 
       if (accRes.status === 404) {
@@ -107,10 +101,7 @@ export const addRiotPlayer = createServerFn({ method: "POST" })
 
       const sumRes = await fetch(
         `https://${data.region.toLowerCase()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(acc.puuid)}`,
-        {
-          headers,
-          signal: AbortSignal.timeout(8_000),
-        },
+        { headers, signal: AbortSignal.timeout(8_000) },
       );
 
       if (sumRes.status === 404) {
@@ -143,14 +134,14 @@ export const addRiotPlayer = createServerFn({ method: "POST" })
       }
 
       const name = `${acc.gameName}#${acc.tagLine}`;
-      const { createPlayer, hasPlayer } = await import("@/lib/local-db");
+      const { createPlayer, hasPlayer } = await import("@/lib/postgres-db.server");
 
-      if (hasPlayer(acc.puuid, name)) {
+      if (await hasPlayer(acc.puuid, name)) {
         return { ok: false as const, error: `${name} já está no board.` };
       }
 
       try {
-        createPlayer({
+        await createPlayer({
           name,
           puuid: acc.puuid,
           region: data.region,
@@ -158,7 +149,12 @@ export const addRiotPlayer = createServerFn({ method: "POST" })
           icon: `https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${sum.profileIconId}.png`,
         });
       } catch (error) {
-        if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+        const code =
+          error != null && typeof error === "object" && "code" in error
+            ? String(error.code)
+            : "";
+
+        if (code === "23505") {
           return { ok: false as const, error: `${name} já está no board.` };
         }
 
@@ -168,9 +164,15 @@ export const addRiotPlayer = createServerFn({ method: "POST" })
 
       return { ok: true as const, name };
     } catch (error) {
-      if (error instanceof Error && error.name === "TimeoutError") {
+      if (
+        error instanceof Error &&
+        (error.name === "TimeoutError" || error.name === "AbortError")
+      ) {
         console.error("riot request timeout");
-        return { ok: false as const, error: "A Riot demorou demais para responder. Tenta novamente." };
+        return {
+          ok: false as const,
+          error: "A Riot demorou demais para responder. Tenta novamente.",
+        };
       }
 
       console.error(error);

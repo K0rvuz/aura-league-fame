@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
@@ -85,11 +85,19 @@ function Index() {
         if (!cancelled) {
           const stableQuotes = result.players.map((player) => {
             if (!(player.id in quoteCache.current)) {
-              quoteCache.current[player.id] = player.quote;
+              const quotes = player.quotes ?? [];
+              quoteCache.current[player.id] =
+                quotes.length > 0
+                  ? quotes[Math.floor(Math.random() * quotes.length)] ?? null
+                  : null;
             }
 
             return {
-              ...player,
+              id: player.id,
+              name: player.name,
+              rank_label: player.rank_label,
+              icon: player.icon,
+              aura: player.aura,
               quote: quoteCache.current[player.id] ?? null,
             };
           });
@@ -107,11 +115,21 @@ function Index() {
     };
 
     void refreshPlayers();
-    const interval = window.setInterval(() => void refreshPlayers(), 5000);
+
+    const interval = window.setInterval(() => {
+      if (!document.hidden) void refreshPlayers();
+    }, 15_000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) void refreshPlayers();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelled = true;
       window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [deferredSearch, getPlayersFn, page]);
 
@@ -458,3 +476,4 @@ function Index() {
     </div>
   );
 }
+
