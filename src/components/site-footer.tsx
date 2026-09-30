@@ -10,6 +10,9 @@ export function SiteFooter() {
           <Link to="/about" className="transition-colors hover:text-sigilsoft">
             Sobre
           </Link>
+          <Link to="/artists" className="transition-colors hover:text-sigilsoft">
+            Artistas
+          </Link>
           <Link to="/privacy" className="transition-colors hover:text-sigilsoft">
             Privacidade
           </Link>
@@ -21,4 +24,5 @@ export function SiteFooter() {
     </footer>
   );
 }
+
 
