@@ -9,9 +9,10 @@ export type Player = {
   rank_label: string;
   icon: string;
   aura: number;
+  quote: string | null;
 };
 
-type PlayerInsert = Omit<Player, "id" | "aura"> & {
+type PlayerInsert = Omit<Player, "id" | "aura" | "quote"> & {
   puuid?: string;
   region?: string;
 };
@@ -47,25 +48,53 @@ db.exec(`
     delta INTEGER NOT NULL CHECK (delta IN (-5000, -1000, 1000, 5000)),
     UNIQUE (player_id, session_id)
   );
+
+  CREATE TABLE IF NOT EXISTS quotes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id TEXT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    text TEXT NOT NULL CHECK (length(trim(text)) > 0),
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_quotes_player_active
+    ON quotes(player_id, active);
 `);
 
 export function listPlayers(
   search: string,
   page: number,
 ): { players: Player[]; total: number; playerCount: number; totalAura: number } {
-  const filter = search ? "WHERE instr(lower(name), lower(?)) > 0" : "";
+  const filter = search ? "WHERE instr(lower(p.name), lower(?)) > 0" : "";
   const searchParams = search ? [search] : [];
+
   const { total } = db
-    .prepare(`SELECT COUNT(*) AS total FROM players ${filter}`)
+    .prepare(`SELECT COUNT(*) AS total FROM players p ${filter}`)
     .get(...searchParams) as { total: number };
+
   const { playerCount, totalAura } = db
     .prepare("SELECT COUNT(*) AS playerCount, COALESCE(SUM(aura), 0) AS totalAura FROM players")
     .get() as { playerCount: number; totalAura: number };
+
   const players = db
     .prepare(
-      `SELECT id, name, rank_label, icon, aura
-       FROM players ${filter}
-       ORDER BY aura DESC, name ASC
+      `SELECT
+         p.id,
+         p.name,
+         p.rank_label,
+         p.icon,
+         p.aura,
+         (
+           SELECT q.text
+           FROM quotes q
+           WHERE q.player_id = p.id
+             AND q.active = 1
+           ORDER BY RANDOM()
+           LIMIT 1
+         ) AS quote
+       FROM players p
+       ${filter}
+       ORDER BY p.aura DESC, p.name ASC
        LIMIT ? OFFSET ?`,
     )
     .all(...searchParams, PAGE_SIZE, (page - 1) * PAGE_SIZE) as Player[];

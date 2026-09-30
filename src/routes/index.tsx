@@ -1,12 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { addRiotPlayer, getPlayers, REGIONS, voteAura } from "@/lib/players.functions";
-
-
-
-
 
 const DELTAS = [-5000, -1000, 1000, 5000] as const;
 const PAGE_SIZE = 10;
@@ -17,6 +13,7 @@ type Player = {
   rank_label: string;
   icon: string;
   aura: number;
+  quote: string | null;
 };
 
 export const Route = createFileRoute("/")({
@@ -82,6 +79,9 @@ function Index() {
   const [region, setRegion] = useState("BR1");
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const quoteCache = useRef<Record<string, string | null>>({});
+
   const getPlayersFn = useServerFn(getPlayers);
   const addPlayerFn = useServerFn(addRiotPlayer);
   const voteAuraFn = useServerFn(voteAura);
@@ -99,11 +99,24 @@ function Index() {
 
   useEffect(() => {
     let cancelled = false;
+
     const refreshPlayers = async () => {
       try {
         const result = await getPlayersFn({ data: { search: deferredSearch, page } });
+
         if (!cancelled) {
-          setPlayers(result.players);
+          const stableQuotes = result.players.map((player) => {
+            if (!(player.id in quoteCache.current)) {
+              quoteCache.current[player.id] = player.quote;
+            }
+
+            return {
+              ...player,
+              quote: quoteCache.current[player.id] ?? null,
+            };
+          });
+
+          setPlayers(stableQuotes);
           setTotalPlayers(result.total);
           setPlayerCount(result.playerCount);
           setTotalAura(result.totalAura);
@@ -358,6 +371,15 @@ function Index() {
                       </div>
                     </div>
                   </div>
+
+                  {player.quote && (
+                    <div className="mx-4 mt-3 border-l-2 border-sigil/35 pl-3">
+                      <p className="text-sm italic leading-relaxed text-mist/90">
+                        “{player.quote}”
+                      </p>
+                    </div>
+                  )}
+
                   <div className="mt-3 px-4">
                     <div className="flex items-baseline justify-between">
                       <span

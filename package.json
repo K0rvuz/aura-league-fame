@@ -13,7 +13,8 @@
     "start": "node .output/server/index.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "quotes": "node scripts/quotes.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
