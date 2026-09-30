@@ -89,8 +89,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       {
         rel: "icon",
-        href: "/favicon.ico",
+        href: "/favicon.ico?v=2",
         type: "image/x-icon",
+        sizes: "any",
+      },
+      {
+        rel: "icon",
+        href: "/favicon-32x32.png?v=2",
+        type: "image/png",
+        sizes: "32x32",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/apple-touch-icon.png?v=2",
+        sizes: "180x180",
       },
       {
         rel: "stylesheet",
@@ -138,6 +150,7 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+
 
 
 
