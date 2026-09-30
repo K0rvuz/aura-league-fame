@@ -202,7 +202,7 @@ function Index() {
       <div className="relative mx-auto grid w-full max-w-[1540px] grid-cols-1 gap-6 px-5 py-6 sm:px-8 xl:grid-cols-[180px_minmax(0,72rem)_180px] xl:items-start xl:justify-center">
         <aside className="hidden xl:block" aria-label="Publicidade lateral esquerda">
           <div className="sticky top-6">
-            <AdSlot />
+            <AdSlot slot="8146812198" />
           </div>
         </aside>
 
@@ -469,13 +469,14 @@ function Index() {
 
         <aside className="hidden xl:block" aria-label="Publicidade lateral direita">
           <div className="sticky top-6">
-            <AdSlot />
+            <AdSlot slot="6162898255" />
           </div>
         </aside>
       </div>
     </div>
   );
 }
+
 
 
 
