@@ -4,21 +4,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { addRiotPlayer, getPlayers, REGIONS, voteAura } from "@/lib/players.functions";
 
-import iconFaker from "@/assets/icon-faker.jpg";
-import iconCaps from "@/assets/icon-caps.jpg";
-import iconChovy from "@/assets/icon-chovy.jpg";
-import iconKnight from "@/assets/icon-knight.jpg";
-import iconGumayusi from "@/assets/icon-gumayusi.jpg";
-import iconDoublelift from "@/assets/icon-doublelift.jpg";
 
-const ICONS: Record<string, string> = {
-  faker: iconFaker,
-  caps: iconCaps,
-  chovy: iconChovy,
-  knight: iconKnight,
-  gumayusi: iconGumayusi,
-  doublelift: iconDoublelift,
-};
+
+
 
 const DELTAS = [-5000, -1000, 1000, 5000] as const;
 const PAGE_SIZE = 10;
@@ -351,11 +339,7 @@ function Index() {
                 >
                   <div className="flex items-center gap-3 px-4 pt-4">
                     <img
-                      src={
-                        player.icon.startsWith("http")
-                          ? player.icon
-                          : (ICONS[player.icon] ?? iconFaker)
-                      }
+                      src={player.icon}
                       alt={`Ícone de ${player.name}`}
                       loading="lazy"
                       width={48}
