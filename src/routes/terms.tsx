@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { ContentPage, PolicySection } from "@/components/content-page";
 
 export const Route = createFileRoute("/terms")({
@@ -39,7 +39,7 @@ function TermsPage() {
 
       <PolicySection title="Jogadores, citações e conteúdo">
         <p>
-          Jogadores podem aparecer no board a partir de identificadores públicos relacionados ao jogo.
+          Jogadores podem aparecer no ranking a partir de identificadores públicos relacionados ao jogo.
           Citações, memes e referências exibidos nos cards são selecionados manualmente pelo
           responsável pelo projeto e podem ser alterados ou removidos a qualquer momento.
         </p>
@@ -66,3 +66,4 @@ function TermsPage() {
     </ContentPage>
   );
 }
+

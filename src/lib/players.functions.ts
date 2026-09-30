@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const PLATFORMS: Record<string, string> = {
@@ -137,7 +137,7 @@ export const addRiotPlayer = createServerFn({ method: "POST" })
       const { createPlayer, hasPlayer } = await import("@/lib/postgres-db.server");
 
       if (await hasPlayer(acc.puuid, name)) {
-        return { ok: false as const, error: `${name} já está no board.` };
+        return { ok: false as const, error: `${name} já está no ranking.` };
       }
 
       try {
@@ -155,7 +155,7 @@ export const addRiotPlayer = createServerFn({ method: "POST" })
             : "";
 
         if (code === "23505") {
-          return { ok: false as const, error: `${name} já está no board.` };
+          return { ok: false as const, error: `${name} já está no ranking.` };
         }
 
         console.error(error);
@@ -181,3 +181,4 @@ export const addRiotPlayer = createServerFn({ method: "POST" })
   });
 
 export const REGIONS = Object.keys(PLATFORMS);
+

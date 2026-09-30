@@ -153,14 +153,8 @@ function Index() {
       setTotalAura((current) => current + delta);
       setTicked(player.id);
       setTimeout(() => setTicked(null), 700);
-    } catch (voteError) {
-      const message = voteError instanceof Error ? voteError.message : "";
-      if (message.includes("already_voted")) {
-        setVoted((v) => ({ ...v, [player.id]: 0 }));
-        setError(`Você já farmou aura no ${player.name} nessa sessão.`);
-      } else {
-        setError("Não foi possível registrar o voto. Tente novamente.");
-      }
+    } catch {
+      setError("Não foi possível registrar o voto. Tente novamente.");
     } finally {
       setPending(null);
     }
@@ -237,7 +231,7 @@ function Index() {
             <span className="text-mist">A comunidade decide.</span>
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-mist/90 sm:text-base">
-            Vote nos jogadores e acompanhe o ranking em tempo real. Atualize a página para liberar uma nova rodada de votos.
+            Vote nos jogadores e acompanhe o ranking em tempo real.
 
           </p>
         </section>
@@ -259,7 +253,7 @@ function Index() {
           </div>
           <div className="flex items-center border border-hexline/60 bg-abyss/40 p-4 lg:col-span-2">
             <div className="text-xs leading-relaxed text-mist">
-              <span className="font-semibold text-sigil">Como funciona:</span> cada carregamento da página permite
+              <span className="font-semibold text-sigil">Como funciona:</span> cada rodada permite
               um voto por jogador. O ranking é público e atualizado automaticamente.
             </div>
           </div>
@@ -476,27 +470,4 @@ function Index() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
