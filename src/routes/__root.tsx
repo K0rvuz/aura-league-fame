@@ -110,6 +110,11 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="pt-BR">
       <head>
         <HeadContent />
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5530796104075696"
+          crossOrigin="anonymous"
+        />
       </head>
       <body>
         {children}
@@ -128,4 +133,5 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+
 
