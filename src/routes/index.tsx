@@ -21,17 +21,17 @@ type Player = {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Aura Farming — Farme aura nos pros de LoL" },
+      { title: "Aura Farming — Ranking de aura dos jogadores de LoL" },
       {
         name: "description",
         content:
-          "Farme aura nos seus jogadores favoritos de League of Legends. Sem conta, sem login: vote, atualize e acompanhe o ranking ao vivo.",
+          "Vote nos jogadores de League of Legends e acompanhe o ranking de aura da comunidade em tempo real.",
       },
-      { property: "og:title", content: "Aura Farming — Farme aura nos pros de LoL" },
+      { property: "og:title", content: "Aura Farming — Ranking de aura dos jogadores de LoL" },
       {
         property: "og:description",
         content:
-          "Vote +5000 ou -5000 de aura nos pros de LoL e acompanhe o ranking ao vivo.",
+          "Vote nos jogadores de League of Legends e acompanhe o ranking de aura da comunidade em tempo real.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -159,7 +159,7 @@ function Index() {
         setVoted((v) => ({ ...v, [player.id]: 0 }));
         setError(`Você já farmou aura no ${player.name} nessa sessão.`);
       } else {
-        setError("Algo deu errado no rift. Tenta de novo.");
+        setError("Não foi possível registrar o voto. Tente novamente.");
       }
     } finally {
       setPending(null);
@@ -177,11 +177,11 @@ function Index() {
     try {
       const res = await addPlayerFn({ data: { riotId: riotId.trim(), region } });
       if (res.ok) {
-        setAddMsg({ ok: true, text: `${res.name} entrou no board. Bora farmar aura!` });
+        setAddMsg({ ok: true, text: `${res.name} foi adicionado ao ranking.` });
         setRiotId("");
       } else setAddMsg({ ok: false, text: res.error });
     } catch {
-      setAddMsg({ ok: false, text: "Algo deu errado. Tenta de novo." });
+      setAddMsg({ ok: false, text: "Não foi possível adicionar o jogador. Tente novamente." });
     } finally {
       setAdding(false);
     }
@@ -217,28 +217,28 @@ function Index() {
                 AURA<span className="text-sigil"> · </span>FARMING
               </div>
               <div className="mt-1 text-[11px] uppercase tracking-[0.35em] text-mist">
-                Runeterra aura ledger
+                Ranking de aura da comunidade
               </div>
             </div>
           </div>
           <div className="hidden items-center gap-2 text-xs uppercase tracking-widest text-mist sm:flex">
             <span className="size-1.5 animate-aurglow rounded-full bg-crest" />
-            Live session
+            Ranking ao vivo
           </div>
         </header>
 
         <section className="mb-8 mt-10 max-w-2xl">
           <div className="mb-3 text-xs uppercase tracking-[0.4em] text-crest">
-            Season 2026 · Ranked
+            Temporada 2026 · Ranking
           </div>
           <h1 className="font-display text-4xl leading-[1.05] sm:text-5xl">
-            Farme a <span className="text-sigil">aura.</span>
+            Quem tem mais <span className="text-sigil">aura?</span>
             <br />
-            <span className="text-mist">Veja o brilho do ranking subir.</span>
+            <span className="text-mist">A comunidade decide.</span>
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-mist/90 sm:text-base">
-            Sem conta. Só vibes. Vote aura em qualquer pro. Ao atualizar a página, uma nova rodada de voto fica disponível. Quem
-            carrega a aura desse patch?
+            Vote nos jogadores e acompanhe o ranking em tempo real. Atualize a página para liberar uma nova rodada de votos.
+
           </p>
         </section>
 
@@ -246,21 +246,21 @@ function Index() {
           <div className="flex items-end gap-6 border-t-2 border-sigil/70 pt-4">
             <div>
               <div className="text-[11px] uppercase tracking-[0.25em] text-mist">
-                Aura total farmada
+                Aura total
               </div>
               <div className="text-3xl font-bold tabular-nums text-sigilsoft">
                 {formatAura(totalAura)}
               </div>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-[0.25em] text-mist">Pros no board</div>
+              <div className="text-[11px] uppercase tracking-[0.25em] text-mist">Jogadores no ranking</div>
               <div className="text-3xl font-bold tabular-nums">{playerCount}</div>
             </div>
           </div>
           <div className="flex items-center border border-hexline/60 bg-abyss/40 p-4 lg:col-span-2">
             <div className="text-xs leading-relaxed text-mist">
-              <span className="font-semibold text-sigil">Regra do voto:</span> cada carregamento da página libera
-              uma rodada de voto por jogador. O board é público e ao vivo — sem login, só o grind.
+              <span className="font-semibold text-sigil">Como funciona:</span> cada carregamento da página permite
+              um voto por jogador. O ranking é público e atualizado automaticamente.
             </div>
           </div>
         </section>
@@ -270,7 +270,7 @@ function Index() {
           className="mt-10 flex flex-col gap-2 border border-sigil/40 bg-abyss/50 p-4 sm:flex-row sm:items-center"
         >
           <div className="text-xs uppercase tracking-[0.25em] text-sigil sm:mr-2">
-            Adicionar player
+            Adicionar jogador
           </div>
           <input
             value={riotId}
@@ -304,9 +304,9 @@ function Index() {
 
         <div className="mb-6 mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-sm uppercase tracking-[0.35em] text-mist">Top aura · ao vivo</h2>
+            <h2 className="text-sm uppercase tracking-[0.35em] text-mist">Ranking de aura</h2>
             <div className="mt-2 text-xs uppercase tracking-widest text-mist/70">
-              Ranqueado por aura
+              Maior pontuação primeiro
             </div>
           </div>
           <label className="relative block w-full sm:max-w-xs">
@@ -336,11 +336,11 @@ function Index() {
 
         {loading ? (
           <div className="py-20 text-center text-sm uppercase tracking-[0.3em] text-mist">
-            Carregando o rift…
+            Carregando ranking…
           </div>
         ) : players.length === 0 ? (
           <div className="border-t border-hexline/50 py-10 text-center text-sm text-mist">
-            {deferredSearch ? "Nenhum jogador encontrado." : "Nenhum jogador no board ainda."}
+            {deferredSearch ? "Nenhum jogador encontrado." : "Nenhum jogador no ranking ainda."}
           </div>
         ) : (
           <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -476,4 +476,26 @@ function Index() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

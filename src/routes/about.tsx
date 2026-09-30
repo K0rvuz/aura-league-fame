@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { ContentPage, PolicySection } from "@/components/content-page";
 
 export const Route = createFileRoute("/about")({
@@ -19,16 +19,16 @@ function AboutPage() {
     <ContentPage
       eyebrow="Sobre o projeto"
       title="Aura é subjetiva. O ranking também."
-      intro="Aura Farming é um projeto de fã feito para transformar aquela discussão impossível de medir — quem tem mais aura? — em um ranking público, simples e ao vivo."
+      intro="Aura Farming transforma a discussão de quem tem mais aura em um ranking público feito pela comunidade."
     >
       <PolicySection title="Como funciona">
         <p>
-          Jogadores podem ser adicionados ao board por Riot ID. A comunidade distribui aura usando
-          os valores disponíveis na interface, e o ranking é atualizado conforme os votos chegam.
+          Jogadores podem ser adicionados ao ranking por Riot ID. A comunidade distribui aura usando
+          os valores disponíveis na interface, e a classificação é atualizada conforme os votos chegam.
         </p>
         <p>
           O site também pode exibir citações, memes e referências associadas aos jogadores. Essas
-          frases são curadas manualmente pelo responsável pelo projeto e não podem ser enviadas
+          frases são selecionadas manualmente pelo responsável pelo projeto e não podem ser enviadas
           diretamente pelo público.
         </p>
       </PolicySection>
@@ -37,7 +37,7 @@ function AboutPage() {
         <p>
           Aura Farming não é um ranking oficial, não mede habilidade competitiva e não deve ser
           interpretado como avaliação profissional de qualquer jogador. A pontuação representa apenas
-          a brincadeira e a participação da comunidade.
+          a participação da comunidade.
         </p>
       </PolicySection>
 
@@ -50,3 +50,8 @@ function AboutPage() {
     </ContentPage>
   );
 }
+
+
+
+
+

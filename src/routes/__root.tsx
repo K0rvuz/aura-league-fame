@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+﻿import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -76,12 +76,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Aura Farming" },
       {
         name: "description",
-        content: "Farme aura nos pros de League of Legends e acompanhe o ranking ao vivo.",
+        content: "Vote nos jogadores de League of Legends e acompanhe o ranking de aura da comunidade.",
       },
       { property: "og:title", content: "Aura Farming" },
       {
         property: "og:description",
-        content: "Farme aura nos pros de League of Legends e acompanhe o ranking ao vivo.",
+        content: "Vote nos jogadores de League of Legends e acompanhe o ranking de aura da comunidade.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -128,3 +128,4 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+
