@@ -41,13 +41,7 @@ export const Route = createFileRoute("/")({
 });
 
 function getSessionId(): string {
-  const key = "aura-farming-session";
-  let id = localStorage.getItem(key);
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem(key, id);
-  }
-  return id;
+  return crypto.randomUUID();
 }
 
 function formatAura(n: number): string {
@@ -66,14 +60,7 @@ function Index() {
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [playerCount, setPlayerCount] = useState(0);
   const [totalAura, setTotalAura] = useState(0);
-  const [voted, setVoted] = useState<Record<string, number>>(() => {
-    if (typeof window === "undefined") return {};
-    try {
-      return JSON.parse(localStorage.getItem("aura-farming-votes") ?? "{}");
-    } catch {
-      return {};
-    }
-  });
+  const [voted, setVoted] = useState<Record<string, number>>({});
   const [pending, setPending] = useState<string | null>(null);
   const [ticked, setTicked] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,10 +81,6 @@ function Index() {
     if (typeof window === "undefined") return "";
     return getSessionId();
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem("aura-farming-votes", JSON.stringify(voted));
-  }, [voted]);
 
   useEffect(() => {
     let cancelled = false;
@@ -243,7 +226,7 @@ function Index() {
             <span className="text-mist">Veja o brilho do ranking subir.</span>
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-mist/90 sm:text-base">
-            Sem conta. Só vibes. Vote aura em qualquer pro — um voto por sessão e depois trava. Quem
+            Sem conta. Só vibes. Vote aura em qualquer pro. Ao atualizar a página, uma nova rodada de voto fica disponível. Quem
             carrega a aura desse patch?
           </p>
         </section>
@@ -265,9 +248,8 @@ function Index() {
           </div>
           <div className="flex items-center border border-hexline/60 bg-abyss/40 p-4 lg:col-span-2">
             <div className="text-xs leading-relaxed text-mist">
-              <span className="font-semibold text-sigil">Regra da sessão:</span> cada pro recebe um
-              voto por sessão do navegador. O board é público e ao vivo — sem login, sem medo de
-              cooldown, só o grind.
+              <span className="font-semibold text-sigil">Regra do voto:</span> cada carregamento da página libera
+              uma rodada de voto por jogador. O board é público e ao vivo — sem login, só o grind.
             </div>
           </div>
         </section>
