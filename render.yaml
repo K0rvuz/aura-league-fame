@@ -3,18 +3,25 @@ services:
     name: aura-league-fame
     runtime: node
     plan: 0.5c-512mb
-    buildCommand: npm install && npm run build
+
+    buildCommand: npm ci && npm run build
     startCommand: npm start
+
     autoDeployTrigger: commit
+
     envVars:
       - key: NITRO_PRESET
         value: render-com
+
       - key: HOST
         value: 0.0.0.0
+
       - key: NODE_VERSION
-        value: 22.16.0
+        value: 22.22.0
+
       - key: RIOT_API_KEY
         sync: false
+
     disk:
       name: aura-data
       mountPath: /opt/render/project/src/data
