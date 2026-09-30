@@ -3,6 +3,8 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { addRiotPlayer, getPlayers, REGIONS, voteAura } from "@/lib/players.functions";
+import { AdSlot } from "@/components/ad-slot";
+import { SiteFooter } from "@/components/site-footer";
 
 const DELTAS = [-5000, -1000, 1000, 5000] as const;
 const PAGE_SIZE = 10;
@@ -203,7 +205,14 @@ function Index() {
         }}
       />
 
-      <div className="relative mx-auto max-w-6xl px-5 py-6 sm:px-8">
+      <div className="relative mx-auto grid w-full max-w-[1540px] grid-cols-1 gap-6 px-5 py-6 sm:px-8 xl:grid-cols-[180px_minmax(0,72rem)_180px] xl:items-start xl:justify-center">
+        <aside className="hidden xl:block" aria-label="Publicidade lateral esquerda">
+          <div className="sticky top-6">
+            <AdSlot />
+          </div>
+        </aside>
+
+        <main className="min-w-0">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="clip-hex grid size-10 animate-aurglow place-items-center border border-sigil/60 bg-steel/60">
@@ -462,10 +471,14 @@ function Index() {
           </div>
         )}
 
-        <footer className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-hexline/40 pt-6 text-[11px] uppercase tracking-widest text-mist/70 sm:flex-row">
-          <span>Aura Farming · conceito de fã não-oficial</span>
-          <span>Farme aura · um voto por sessão</span>
-        </footer>
+          <SiteFooter />
+        </main>
+
+        <aside className="hidden xl:block" aria-label="Publicidade lateral direita">
+          <div className="sticky top-6">
+            <AdSlot />
+          </div>
+        </aside>
       </div>
     </div>
   );
