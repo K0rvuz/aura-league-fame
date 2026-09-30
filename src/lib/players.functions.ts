@@ -17,7 +17,7 @@ export const addRiotPlayer = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const key = process.env["RIOT_API_KEY"];
     if (!key) return { ok: false as const, error: "Conexão com a Riot ainda não configurada." };
-    const [gameName, tagLine] = data.riotId.split("#").map((s) => s.trim());
+    const [gameName = "", tagLine = ""] = data.riotId.split("#").map((s) => s.trim());
     const cluster = PLATFORMS[data.region] === "sea" ? "asia" : PLATFORMS[data.region];
     const headers = { "X-Riot-Token": key };
 
