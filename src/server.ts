@@ -1,4 +1,13 @@
+import process from "node:process";
 import "./lib/error-capture";
+
+try {
+  process.loadEnvFile(".env");
+} catch (error) {
+  if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") {
+    throw error;
+  }
+}
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";

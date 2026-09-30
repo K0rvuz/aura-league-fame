@@ -1,28 +1,21 @@
-# Aura Farm League
+# Aura Farming
 
-gere um site de "Aura Farming" 
+Local League of Legends player aura board. Player scores and one-vote-per-player/session records are stored in `data/aura-farming.sqlite` using SQLite. The database is created empty on first run; players are added through the site.
 
-Focado em league of legends. 
+## Requirements
 
-Basicamente, aproveitar o hype de "farmar aura" e conectar isso ao lol. terá o nome dos jogadores e foto padrão da riot, abaixo, 4 botões -5000 -1000 +1000 +5000 de "aura" e só isso. Guarda o valor de cada jogador e cada pessoa pode colocar pontos 1x por sessionID, sem conta, nem nada.
+- Node.js 20.19+ or 22.12+
+- npm
 
-This project was built with [Lovable](https://lovable.dev).
+## Run locally
 
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/d82ff3f1-3b31-4fd9-9e10-4d051bc06deb).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+```powershell
+npm install
 npm run dev
 ```
+
+Open the local URL printed by Vite. The SQLite database is created under `data/` and persists across restarts.
+
+Player lookup through the Riot API is optional. To enable adding Riot IDs, set `RIOT_API_KEY` in the ignored local `.env` file before starting the development server. The board and voting work without a Riot API key or network connection.
+
+Each browser creates a persistent session ID in local storage. SQLite enforces one vote per player and session, even if a vote is submitted more than once.

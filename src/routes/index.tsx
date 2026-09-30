@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
-import { addRiotPlayer, REGIONS } from "@/lib/players.functions";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { addRiotPlayer, getPlayers, REGIONS, voteAura } from "@/lib/players.functions";
 
 import iconFaker from "@/assets/icon-faker.jpg";
 import iconCaps from "@/assets/icon-caps.jpg";
@@ -21,6 +21,7 @@ const ICONS: Record<string, string> = {
 };
 
 const DELTAS = [-5000, -1000, 1000, 5000] as const;
+const PAGE_SIZE = 10;
 
 type Player = {
   id: string;
@@ -73,6 +74,11 @@ function formatDelta(d: number): string {
 function Index() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPlayers, setTotalPlayers] = useState(0);
+  const [playerCount, setPlayerCount] = useState(0);
+  const [totalAura, setTotalAura] = useState(0);
   const [voted, setVoted] = useState<Record<string, number>>(() => {
     if (typeof window === "undefined") return {};
     try {
@@ -88,7 +94,11 @@ function Index() {
   const [region, setRegion] = useState("BR1");
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const getPlayersFn = useServerFn(getPlayers);
   const addPlayerFn = useServerFn(addRiotPlayer);
+  const voteAuraFn = useServerFn(voteAura);
+  const deferredSearch = useDeferredValue(search.trim());
+  const pageCount = Math.max(1, Math.ceil(totalPlayers / PAGE_SIZE));
 
   const sessionId = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -101,80 +111,62 @@ function Index() {
 
   useEffect(() => {
     let cancelled = false;
-    supabase
-      .from("players")
-      .select("id, name, rank_label, icon, aura")
-      .order("aura", { ascending: false })
-      .then(({ data }) => {
-        if (!cancelled && data) setPlayers(data as Player[]);
+    const refreshPlayers = async () => {
+      try {
+        const result = await getPlayersFn({ data: { search: deferredSearch, page } });
+        if (!cancelled) {
+          setPlayers(result.players);
+          setTotalPlayers(result.total);
+          setPlayerCount(result.playerCount);
+          setTotalAura(result.totalAura);
+        }
+      } catch {
+        if (!cancelled) setError("Não foi possível carregar os jogadores.");
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    };
 
-    const channel = supabase
-      .channel("players-aura")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "players" },
-        (payload) => {
-          const row = payload.new as Player;
-          setPlayers((prev) =>
-            prev.some((p) => p.id === row.id)
-              ? prev
-              : [...prev, row].sort((a, b) => b.aura - a.aura),
-          );
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "players" },
-        (payload) => {
-          const row = payload.new as Player;
-          setPlayers((prev) =>
-            prev
-              .map((p) => (p.id === row.id ? { ...p, aura: row.aura } : p))
-              .sort((a, b) => b.aura - a.aura),
-          );
-        },
-      )
-      .subscribe();
+    void refreshPlayers();
+    const interval = window.setInterval(() => void refreshPlayers(), 3000);
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      window.clearInterval(interval);
     };
-  }, []);
+  }, [deferredSearch, getPlayersFn, page]);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   async function vote(player: Player, delta: number) {
     if (voted[player.id] !== undefined || pending) return;
     setPending(player.id);
     setError(null);
 
-    const { data, error: rpcError } = await supabase.rpc("vote_aura", {
-      p_player_id: player.id,
-      p_session_id: sessionId,
-      p_delta: delta,
-    });
-
-    setPending(null);
-
-    if (rpcError) {
-      if (rpcError.message.includes("already_voted")) {
+    try {
+      const aura = await voteAuraFn({
+        data: { playerId: player.id, sessionId, delta },
+      });
+      setVoted((v) => ({ ...v, [player.id]: delta }));
+      setPlayers((prev) =>
+        prev.map((p) => (p.id === player.id ? { ...p, aura } : p)).sort((a, b) => b.aura - a.aura),
+      );
+      setTotalAura((current) => current + delta);
+      setTicked(player.id);
+      setTimeout(() => setTicked(null), 700);
+    } catch (voteError) {
+      const message = voteError instanceof Error ? voteError.message : "";
+      if (message.includes("already_voted")) {
         setVoted((v) => ({ ...v, [player.id]: 0 }));
         setError(`Você já farmou aura no ${player.name} nessa sessão.`);
       } else {
         setError("Algo deu errado no rift. Tenta de novo.");
       }
-      return;
+    } finally {
+      setPending(null);
     }
-
-    setVoted((v) => ({ ...v, [player.id]: delta }));
-    setPlayers((prev) =>
-      prev
-        .map((p) => (p.id === player.id ? { ...p, aura: data as number } : p))
-        .sort((a, b) => b.aura - a.aura),
-    );
-    setTicked(player.id);
-    setTimeout(() => setTicked(null), 700);
   }
 
   async function submitPlayer(e: React.FormEvent) {
@@ -198,7 +190,6 @@ function Index() {
     }
   }
 
-  const totalAura = players.reduce((sum, p) => sum + p.aura, 0);
   const maxAura = players.length ? Math.max(...players.map((p) => Math.abs(p.aura)), 1) : 1;
 
   return (
@@ -242,8 +233,8 @@ function Index() {
             <span className="text-mist">Veja o brilho do ranking subir.</span>
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-mist/90 sm:text-base">
-            Sem conta. Só vibes. Vote aura em qualquer pro — um voto por sessão e
-            depois trava. Quem carrega a aura desse patch?
+            Sem conta. Só vibes. Vote aura em qualquer pro — um voto por sessão e depois trava. Quem
+            carrega a aura desse patch?
           </p>
         </section>
 
@@ -258,17 +249,15 @@ function Index() {
               </div>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-[0.25em] text-mist">
-                Pros no board
-              </div>
-              <div className="text-3xl font-bold tabular-nums">{players.length}</div>
+              <div className="text-[11px] uppercase tracking-[0.25em] text-mist">Pros no board</div>
+              <div className="text-3xl font-bold tabular-nums">{playerCount}</div>
             </div>
           </div>
           <div className="flex items-center border border-hexline/60 bg-abyss/40 p-4 lg:col-span-2">
             <div className="text-xs leading-relaxed text-mist">
-              <span className="font-semibold text-sigil">Regra da sessão:</span>{" "}
-              cada pro recebe um voto por sessão do navegador. O board é público e
-              ao vivo — sem login, sem medo de cooldown, só o grind.
+              <span className="font-semibold text-sigil">Regra da sessão:</span> cada pro recebe um
+              voto por sessão do navegador. O board é público e ao vivo — sem login, sem medo de
+              cooldown, só o grind.
             </div>
           </div>
         </section>
@@ -292,7 +281,9 @@ function Index() {
             className="border border-hexline/70 bg-steel/40 px-3 py-2 text-sm text-ink"
           >
             {REGIONS.map((r) => (
-              <option key={r} value={r}>{r}</option>
+              <option key={r} value={r}>
+                {r}
+              </option>
             ))}
           </select>
           <button
@@ -308,13 +299,30 @@ function Index() {
           </div>
         )}
 
-        <div className="mb-6 mt-12 flex items-center justify-between">
-          <h2 className="text-sm uppercase tracking-[0.35em] text-mist">
-            Top aura · ao vivo
-          </h2>
-          <div className="text-xs uppercase tracking-widest text-mist/70">
-            Ranqueado por aura
+        <div className="mb-6 mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-sm uppercase tracking-[0.35em] text-mist">Top aura · ao vivo</h2>
+            <div className="mt-2 text-xs uppercase tracking-widest text-mist/70">
+              Ranqueado por aura
+            </div>
           </div>
+          <label className="relative block w-full sm:max-w-xs">
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-mist/70"
+            />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Buscar nick"
+              aria-label="Buscar jogador pelo nick"
+              className="w-full border border-hexline/70 bg-steel/40 py-2 pl-9 pr-3 text-sm text-ink placeholder:text-mist/60 focus:border-sigil focus:outline-none"
+            />
+          </label>
         </div>
 
         {error && (
@@ -326,6 +334,10 @@ function Index() {
         {loading ? (
           <div className="py-20 text-center text-sm uppercase tracking-[0.3em] text-mist">
             Carregando o rift…
+          </div>
+        ) : players.length === 0 ? (
+          <div className="border-t border-hexline/50 py-10 text-center text-sm text-mist">
+            {deferredSearch ? "Nenhum jogador encontrado." : "Nenhum jogador no board ainda."}
           </div>
         ) : (
           <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -339,7 +351,11 @@ function Index() {
                 >
                   <div className="flex items-center gap-3 px-4 pt-4">
                     <img
-                      src={player.icon.startsWith("http") ? player.icon : (ICONS[player.icon] ?? iconFaker)}
+                      src={
+                        player.icon.startsWith("http")
+                          ? player.icon
+                          : (ICONS[player.icon] ?? iconFaker)
+                      }
                       alt={`Ícone de ${player.name}`}
                       loading="lazy"
                       width={48}
@@ -368,9 +384,7 @@ function Index() {
                       >
                         {formatAura(player.aura)}
                       </span>
-                      <span className="text-[11px] uppercase tracking-widest text-crest">
-                        aura
-                      </span>
+                      <span className="text-[11px] uppercase tracking-widest text-crest">aura</span>
                     </div>
                     <div className="mt-2 h-1.5 overflow-hidden bg-steel">
                       <div
@@ -393,11 +407,7 @@ function Index() {
                             positive
                               ? "border border-sigil/40 bg-sigil/10 text-sigilsoft hover:bg-sigil/20"
                               : "border border-hexline/70 bg-steel/40 text-mist hover:bg-hex"
-                          } ${
-                            hasVoted || isPending
-                              ? "cursor-not-allowed opacity-40"
-                              : ""
-                          } ${
+                          } ${hasVoted || isPending ? "cursor-not-allowed opacity-40" : ""} ${
                             hasVoted && voted[player.id] === delta
                               ? "opacity-100 ring-1 ring-sigil"
                               : ""
@@ -412,6 +422,38 @@ function Index() {
               );
             })}
           </section>
+        )}
+
+        {!loading && totalPlayers > 0 && (
+          <div className="mt-6 flex flex-col gap-3 border-t border-hexline/40 pt-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-mist">
+              Mostrando {(page - 1) * PAGE_SIZE + 1}–{(page - 1) * PAGE_SIZE + players.length} de{" "}
+              {totalPlayers} jogadores
+            </span>
+            <nav aria-label="Paginação de jogadores" className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={page <= 1}
+                className="inline-flex h-9 items-center gap-1 border border-hexline/70 px-3 text-mist transition-colors hover:bg-steel/60 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft aria-hidden="true" className="size-4" />
+                Anterior
+              </button>
+              <span aria-live="polite" className="min-w-16 text-center tabular-nums text-ink">
+                {page} / {pageCount}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+                disabled={page >= pageCount}
+                className="inline-flex h-9 items-center gap-1 border border-hexline/70 px-3 text-mist transition-colors hover:bg-steel/60 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Próxima
+                <ChevronRight aria-hidden="true" className="size-4" />
+              </button>
+            </nav>
+          </div>
         )}
 
         <footer className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-hexline/40 pt-6 text-[11px] uppercase tracking-widest text-mist/70 sm:flex-row">
