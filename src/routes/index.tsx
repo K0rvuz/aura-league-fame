@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { addRiotPlayer, getPlayers, REGIONS, voteAura } from "@/lib/players.functions";
@@ -25,13 +25,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Farme aura nos seus jogadores favoritos de League of Legends. Sem conta, sem login: um voto por sessão. Quem carrega a aura desse patch?",
+          "Farme aura nos seus jogadores favoritos de League of Legends. Sem conta, sem login: vote, atualize e acompanhe o ranking ao vivo.",
       },
       { property: "og:title", content: "Aura Farming — Farme aura nos pros de LoL" },
       {
         property: "og:description",
         content:
-          "Vote +5000 ou -5000 de aura nos pros de LoL. Um voto por sessão, ranking ao vivo.",
+          "Vote +5000 ou -5000 de aura nos pros de LoL e acompanhe o ranking ao vivo.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -40,9 +40,6 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-function getSessionId(): string {
-  return crypto.randomUUID();
-}
 
 function formatAura(n: number): string {
   return n.toLocaleString("pt-BR");
@@ -77,10 +74,6 @@ function Index() {
   const deferredSearch = useDeferredValue(search.trim());
   const pageCount = Math.max(1, Math.ceil(totalPlayers / PAGE_SIZE));
 
-  const sessionId = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    return getSessionId();
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,7 +107,7 @@ function Index() {
     };
 
     void refreshPlayers();
-    const interval = window.setInterval(() => void refreshPlayers(), 3000);
+    const interval = window.setInterval(() => void refreshPlayers(), 5000);
 
     return () => {
       cancelled = true;
@@ -133,7 +126,7 @@ function Index() {
 
     try {
       const aura = await voteAuraFn({
-        data: { playerId: player.id, sessionId, delta },
+        data: { playerId: player.id, delta },
       });
       setVoted((v) => ({ ...v, [player.id]: delta }));
       setPlayers((prev) =>

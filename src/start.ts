@@ -1,4 +1,9 @@
-import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
+import {
+  createStart,
+  createCsrfMiddleware,
+  createMiddleware,
+} from "@tanstack/react-start";
+import { setResponseHeader } from "@tanstack/react-start/server";
 
 import { renderErrorPage } from "./lib/error-page";
 
@@ -9,6 +14,7 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }
+
     console.error(error);
     return new Response(renderErrorPage(), {
       status: 500,
@@ -17,13 +23,26 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
   }
 });
 
+const securityHeadersMiddleware = createMiddleware().server(async ({ next }) => {
+  setResponseHeader("X-Content-Type-Options", "nosniff");
+  setResponseHeader("X-Frame-Options", "DENY");
+  setResponseHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  setResponseHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  setResponseHeader("Strict-Transport-Security", "max-age=31536000");
+
+  return next();
+});
+
 // Start installs this automatically when src/start.ts is absent; defining the
-// file opts out, so re-add it explicitly to keep server functions protected
-// from cross-site requests.
+// file opts out, so keep it explicitly enabled for all server functions.
 const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",
 });
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [errorMiddleware, csrfMiddleware],
+  requestMiddleware: [
+    errorMiddleware,
+    securityHeadersMiddleware,
+    csrfMiddleware,
+  ],
 }));

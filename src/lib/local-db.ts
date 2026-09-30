@@ -30,6 +30,7 @@ globalDatabase.auraFarmingDatabase = db;
 
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
+db.pragma("busy_timeout = 5000");
 db.exec(`
   CREATE TABLE IF NOT EXISTS players (
     id TEXT PRIMARY KEY,
@@ -39,14 +40,6 @@ db.exec(`
     aura INTEGER NOT NULL DEFAULT 0,
     puuid TEXT UNIQUE,
     region TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS aura_votes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_id TEXT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-    session_id TEXT NOT NULL,
-    delta INTEGER NOT NULL CHECK (delta IN (-5000, -1000, 1000, 5000)),
-    UNIQUE (player_id, session_id)
   );
 
   CREATE TABLE IF NOT EXISTS quotes (
@@ -59,6 +52,8 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_quotes_player_active
     ON quotes(player_id, active);
+
+  DROP TABLE IF EXISTS aura_votes;
 `);
 
 export function listPlayers(
@@ -102,34 +97,18 @@ export function listPlayers(
   return { players, total, playerCount, totalAura };
 }
 
-export function castVote(playerId: string, sessionId: string, delta: number): number {
-  const transaction = db.transaction(() => {
-    db.prepare("INSERT INTO aura_votes (player_id, session_id, delta) VALUES (?, ?, ?)").run(
-      playerId,
-      sessionId,
-      delta,
-    );
+export function castVote(playerId: string, delta: number): number {
+  const player = db
+    .prepare(
+      `UPDATE players
+       SET aura = aura + ?
+       WHERE id = ?
+       RETURNING aura`,
+    )
+    .get(delta, playerId) as { aura: number } | undefined;
 
-    db.prepare("UPDATE players SET aura = aura + ? WHERE id = ?").run(delta, playerId);
-    const player = db.prepare("SELECT aura FROM players WHERE id = ?").get(playerId) as
-      { aura: number } | undefined;
-    if (!player) throw new Error("player_not_found");
-    return player.aura;
-  });
-
-  try {
-    return transaction.immediate();
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.includes(
-        "UNIQUE constraint failed: aura_votes.player_id, aura_votes.session_id",
-      )
-    ) {
-      throw new Error("already_voted");
-    }
-    throw error;
-  }
+  if (!player) throw new Error("player_not_found");
+  return player.aura;
 }
 
 export function hasPlayer(puuid: string, name: string): boolean {
