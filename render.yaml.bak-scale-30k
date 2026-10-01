@@ -34,23 +34,5 @@ services:
       - key: NODE_VERSION
         value: 22.22.0
 
-      - key: PG_POOL_MAX
-        value: "5"
-
-      - key: RANKING_CACHE_TTL_MS
-        value: "4000"
-
-      - key: RANKING_SEARCH_CACHE_TTL_MS
-        value: "2500"
-
-      - key: RANKING_STATS_CACHE_TTL_MS
-        value: "5000"
-
-      - key: RANKING_CACHE_MAX_ENTRIES
-        value: "256"
-
-      - key: PLAYER_IMPORT_BACKLOG_MAX
-        value: "50000"
-
       - key: RIOT_API_KEY
         sync: false

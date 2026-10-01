@@ -79,107 +79,59 @@ function Index() {
 
   useEffect(() => {
     let cancelled = false;
-    let timeoutId: number | undefined;
-    let currentRefresh: Promise<void> | null = null;
 
-    const refreshPlayers = () => {
-      if (currentRefresh) return currentRefresh;
+    const refreshPlayers = async () => {
+      try {
+        const result = await getPlayersFn({ data: { search: deferredSearch, page } });
 
-      currentRefresh = (async () => {
-        try {
-          const result = await getPlayersFn({
-            data: { search: deferredSearch, page },
+        if (!cancelled) {
+          const stableQuotes = result.players.map((player) => {
+            if (!(player.id in quoteCache.current)) {
+              const quotes = player.quotes ?? [];
+              quoteCache.current[player.id] =
+                quotes.length > 0
+                  ? quotes[Math.floor(Math.random() * quotes.length)] ?? null
+                  : null;
+            }
+
+            return {
+              id: player.id,
+              name: player.name,
+              rank_label: player.rank_label,
+              icon: player.icon,
+              aura: player.aura,
+              quote: quoteCache.current[player.id] ?? null,
+            };
           });
 
-          if (!cancelled) {
-            const stableQuotes = result.players.map((player) => {
-              if (!(player.id in quoteCache.current)) {
-                const quotes = player.quotes ?? [];
-                quoteCache.current[player.id] =
-                  quotes.length > 0
-                    ? quotes[Math.floor(Math.random() * quotes.length)] ?? null
-                    : null;
-              }
-
-              return {
-                id: player.id,
-                name: player.name,
-                rank_label: player.rank_label,
-                icon: player.icon,
-                aura: player.aura,
-                quote: quoteCache.current[player.id] ?? null,
-              };
-            });
-
-            setPlayers(stableQuotes);
-            setTotalPlayers(result.total);
-            setPlayerCount(result.playerCount);
-            setTotalAura(result.totalAura);
-          }
-        } catch {
-          if (!cancelled) {
-            setError("Não foi possível carregar os jogadores.");
-          }
-        } finally {
-          if (!cancelled) {
-            setLoading(false);
-          }
+          setPlayers(stableQuotes);
+          setTotalPlayers(result.total);
+          setPlayerCount(result.playerCount);
+          setTotalAura(result.totalAura);
         }
-      })().finally(() => {
-        currentRefresh = null;
-      });
-
-      return currentRefresh;
-    };
-
-    const scheduleNext = () => {
-      if (cancelled || document.hidden) return;
-
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId);
+      } catch {
+        if (!cancelled) setError("Não foi possível carregar os jogadores.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      const delay = 12_000 + Math.floor(Math.random() * 6_001);
-
-      timeoutId = window.setTimeout(() => {
-        void refreshPlayers().finally(scheduleNext);
-      }, delay);
     };
 
-    const refreshAndSchedule = () => {
-      void refreshPlayers().finally(scheduleNext);
-    };
+    void refreshPlayers();
 
-    refreshAndSchedule();
+    const interval = window.setInterval(() => {
+      if (!document.hidden) void refreshPlayers();
+    }, 15_000);
 
     const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (timeoutId !== undefined) {
-          window.clearTimeout(timeoutId);
-          timeoutId = undefined;
-        }
-        return;
-      }
-
-      refreshAndSchedule();
+      if (!document.hidden) void refreshPlayers();
     };
 
-    document.addEventListener(
-      "visibilitychange",
-      handleVisibilityChange,
-    );
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelled = true;
-
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId);
-      }
-
-      document.removeEventListener(
-        "visibilitychange",
-        handleVisibilityChange,
-      );
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [deferredSearch, getPlayersFn, page]);
 

@@ -5,24 +5,23 @@ type Bucket = {
   resetAt: number;
 };
 
-const SWEEP_INTERVAL_MS = 30_000;
-
 const globalRateLimit = globalThis as typeof globalThis & {
   auraRateLimitBuckets?: Map<string, Bucket>;
-  auraRateLimitLastSweepAt?: number;
+  auraRateLimitSweepCounter?: number;
 };
 
-const buckets =
-  globalRateLimit.auraRateLimitBuckets ?? new Map<string, Bucket>();
-
+const buckets = globalRateLimit.auraRateLimitBuckets ?? new Map<string, Bucket>();
 globalRateLimit.auraRateLimitBuckets = buckets;
 
 function getClientIp(): string {
   const request = getRequest();
 
+  // Render's public web services sit behind Cloudflare. Render documents
+  // CF-Connecting-IP as the trusted real-client-IP header at this edge.
   const cloudflareIp = request.headers.get("cf-connecting-ip")?.trim();
   if (cloudflareIp) return cloudflareIp;
 
+  // Fallback for local development / alternate proxies.
   const forwarded = request.headers.get("x-forwarded-for");
   const fallbackIp = forwarded?.split(",").at(-1)?.trim();
 
@@ -30,24 +29,17 @@ function getClientIp(): string {
 }
 
 function sweepExpired(now: number): void {
-  const lastSweep = globalRateLimit.auraRateLimitLastSweepAt ?? 0;
+  globalRateLimit.auraRateLimitSweepCounter =
+    (globalRateLimit.auraRateLimitSweepCounter ?? 0) + 1;
 
-  if (now - lastSweep < SWEEP_INTERVAL_MS) return;
-
-  globalRateLimit.auraRateLimitLastSweepAt = now;
+  if (globalRateLimit.auraRateLimitSweepCounter % 100 !== 0) return;
 
   for (const [key, bucket] of buckets) {
-    if (bucket.resetAt <= now) {
-      buckets.delete(key);
-    }
+    if (bucket.resetAt <= now) buckets.delete(key);
   }
 }
 
-export function assertRateLimit(
-  key: string,
-  max: number,
-  windowMs: number,
-): void {
+export function assertRateLimit(key: string, max: number, windowMs: number): void {
   const now = Date.now();
   sweepExpired(now);
 
@@ -55,17 +47,12 @@ export function assertRateLimit(
   const current = buckets.get(bucketKey);
 
   if (!current || current.resetAt <= now) {
-    buckets.set(bucketKey, {
-      count: 1,
-      resetAt: now + windowMs,
-    });
+    buckets.set(bucketKey, { count: 1, resetAt: now + windowMs });
     return;
   }
 
   if (current.count >= max) {
-    const error = new Error("rate_limited") as Error & {
-      statusCode: number;
-    };
+    const error = new Error("rate_limited") as Error & { statusCode: number };
     error.statusCode = 429;
     throw error;
   }
