@@ -77,8 +77,8 @@ function FeaturedPlayerCard({
           ? "rgba(34, 211, 238, 0.42)"
           : "rgba(109, 40, 217, 0.46)",
         background: isLeader
-          ? "linear-gradient(0deg, rgba(34,211,238,0.10) 0%, rgba(37,99,235,0.055) 48%, rgba(76,29,149,0.12) 100%)"
-          : "linear-gradient(0deg, rgba(34,211,238,0.065) 0%, rgba(37,99,235,0.05) 48%, rgba(76,29,149,0.145) 100%)",
+          ? "linear-gradient(135deg, rgba(34,211,238,0.09), rgba(37,99,235,0.05) 48%, rgba(76,29,149,0.10))"
+          : "linear-gradient(135deg, rgba(76,29,149,0.13), rgba(37,99,235,0.05) 52%, rgba(34,211,238,0.06))",
         boxShadow: isLeader
           ? "inset 0 0 24px rgba(34,211,238,0.035)"
           : "inset 0 0 24px rgba(76,29,149,0.055)",
@@ -595,60 +595,45 @@ function Index() {
                 hasRankAura && hoveredPlayerId === player.id;
               const cardAuraStyle = isAuraHovered
                 ? {
-                    borderColor: `rgba(59, 130, 246, ${(
-                      0.20 + topTenStrength * 0.48
-                    ).toFixed(2)})`,
-                    backgroundImage: `linear-gradient(
-                      180deg,
-                      rgba(76, 29, 149, ${(
-                        0.035 + topTenStrength * 0.085
-                      ).toFixed(3)}) 0%,
-                      rgba(59, 130, 246, ${(
-                        0.025 + topTenStrength * 0.055
-                      ).toFixed(3)}) 48%,
-                      rgba(34, 211, 238, ${(
-                        0.040 + topTenStrength * 0.090
-                      ).toFixed(3)}) 100%
-                    )`,
                     boxShadow: [
-                      // Bottom smoke: cyan.
+                      // Ciano embaixo. Blur + spread aumentam com o ranking.
                       `0 ${Math.round(
-                        5 + topTenStrength * 14,
+                        8 + topTenStrength * 18,
                       )}px ${Math.round(
-                        15 + topTenStrength * 34,
+                        18 + topTenStrength * 42,
                       )}px ${Math.round(
-                        topTenStrength * 10,
+                        1 + topTenStrength * 12,
                       )}px rgba(34, 211, 238, ${(
-                        0.07 + topTenStrength * 0.27
+                        0.09 + topTenStrength * 0.27
                       ).toFixed(2)})`,
 
-                      // Middle bridge: blue.
+                      // Azul faz a transição no centro.
                       `0 0 ${Math.round(
-                        12 + topTenStrength * 28,
+                        16 + topTenStrength * 36,
                       )}px ${Math.round(
-                        topTenStrength * 6,
+                        topTenStrength * 8,
                       )}px rgba(59, 130, 246, ${(
-                        0.05 + topTenStrength * 0.19
+                        0.055 + topTenStrength * 0.18
                       ).toFixed(2)})`,
 
-                      // Top smoke: dark purple.
+                      // Roxo escuro em cima.
                       `0 -${Math.round(
-                        5 + topTenStrength * 14,
+                        8 + topTenStrength * 18,
                       )}px ${Math.round(
-                        17 + topTenStrength * 38,
+                        20 + topTenStrength * 46,
                       )}px ${Math.round(
-                        topTenStrength * 11,
+                        1 + topTenStrength * 13,
                       )}px rgba(76, 29, 149, ${(
-                        0.07 + topTenStrength * 0.29
+                        0.09 + topTenStrength * 0.29
                       ).toFixed(2)})`,
 
-                      // Large soft halo makes the aura feel smoky instead of neon.
+                      // Halo amplo e bem difuso para dar sensação esfumaçada.
                       `0 0 ${Math.round(
-                        22 + topTenStrength * 44,
+                        28 + topTenStrength * 54,
                       )}px ${Math.round(
-                        topTenStrength * 5,
-                      )}px rgba(91, 33, 182, ${(
-                        0.025 + topTenStrength * 0.10
+                        topTenStrength * 7,
+                      )}px rgba(67, 56, 202, ${(
+                        0.025 + topTenStrength * 0.09
                       ).toFixed(2)})`,
                     ].join(", "),
                     transform: `translateY(-${Math.max(
@@ -667,8 +652,9 @@ function Index() {
                     if (hoveredPlayerId === player.id) setHoveredPlayerId(null);
                   }}
                   style={cardAuraStyle}
-                  className="clip-card group border border-hexline/60 bg-abyss/50 transition-[border-color,box-shadow,transform] duration-300 hover:border-sigil/50"
+                  className="relative transition-[box-shadow,transform] duration-300"
                 >
+                  <div className="clip-card group h-full border border-hexline/60 bg-abyss/50 transition-colors duration-300 hover:border-sigil/50">
                   <div className="flex items-center gap-3 px-4 pt-4">
                     <img
                       src={player.icon}
@@ -758,6 +744,7 @@ function Index() {
                         </button>
                       );
                     })}
+                  </div>
                   </div>
                 </div>
               );
