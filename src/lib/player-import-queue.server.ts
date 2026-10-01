@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createPlayer, getDatabasePool, hasPlayer } from "@/lib/postgres-db.server";
+import { createPlayer, getDatabasePool, getPlayerByPuuid, hasPlayer, updatePlayerIdentityByPuuid } from "@/lib/postgres-db.server";
 
 const JOB_INTERVAL_MS=1000;
 const MAX_ATTEMPTS=5;
@@ -129,7 +129,7 @@ async function processJob(job:Job){
     if(!a.ok){console.error("riot queued account request failed",a.status);await fail(job.id,"Não foi possível validar esse Riot ID.");return;}
     const acc=await a.json() as {puuid:string;gameName:string;tagLine:string};
     const name=`${acc.gameName}#${acc.tagLine}`;
-    if(await hasPlayer(acc.puuid,name)){await complete(job.id,name,"duplicate");return;}
+    const existingByPuuid=await getPlayerByPuuid(acc.puuid);
 
     const s=await fetch(`https://${job.region.toLowerCase()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(acc.puuid)}`,{headers,signal:AbortSignal.timeout(8000)});
     if(s.status===404){await fail(job.id,"Essa conta não joga LoL nessa região.");return;}
@@ -138,10 +138,29 @@ async function processJob(job:Job){
     if(!s.ok){console.error("riot queued summoner request failed",s.status);await fail(job.id,"Não foi possível consultar essa conta na Riot.");return;}
     const sum=await s.json() as {profileIconId:number;summonerLevel:number};
     const version=await ddragonVersion();
+    const rankLabel=`${job.region} · Nv ${sum.summonerLevel}`;
+    const icon=`https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${sum.profileIconId}.png`;
+
+    if(existingByPuuid){
+      await updatePlayerIdentityByPuuid(acc.puuid,{
+        name,
+        rank_label:rankLabel,
+        icon,
+        region:job.region,
+      });
+      await complete(job.id,name,"completed");
+      return;
+    }
+
+    if(await hasPlayer(acc.puuid,name)){
+      await complete(job.id,name,"duplicate");
+      return;
+    }
+
     try{
       await createPlayer({name,puuid:acc.puuid,region:job.region,
-        rank_label:`${job.region} · Nv ${sum.summonerLevel}`,
-        icon:`https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${sum.profileIconId}.png`});
+        rank_label:rankLabel,
+        icon});
     }catch(error){
       const code=error&&typeof error==="object"&&"code" in error?String(error.code):"";
       if(code==="23505"){await complete(job.id,name,"duplicate");return;}

@@ -125,6 +125,28 @@ export async function hasPlayer(puuid:string,name:string):Promise<boolean>{
   const result=await pool.query("SELECT 1 FROM players WHERE puuid=$1 OR lower(name)=lower($2) LIMIT 1",[puuid,name]);
   return (result.rowCount??0)>0;
 }
+export async function getPlayerByPuuid(puuid:string):Promise<{id:string;name:string}|null>{
+  await ensureSchema();
+  const result=await pool.query<{id:string;name:string}>(
+    "SELECT id,name FROM players WHERE puuid=$1 LIMIT 1",
+    [puuid],
+  );
+  return result.rows[0]??null;
+}
+
+export async function updatePlayerIdentityByPuuid(
+  puuid:string,
+  player:{name:string;rank_label:string;icon:string;region:string},
+):Promise<void>{
+  await ensureSchema();
+  await pool.query(
+    `UPDATE players
+     SET name=$2, rank_label=$3, icon=$4, region=$5
+     WHERE puuid=$1`,
+    [puuid,player.name,player.rank_label,player.icon,player.region],
+  );
+}
+
 export async function createPlayer(player:PlayerInsert):Promise<void>{
   await ensureSchema();
   await pool.query(`INSERT INTO players (id,name,rank_label,icon,aura,puuid,region)
