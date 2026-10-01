@@ -149,8 +149,8 @@ function FeaturedPlayerCard({
         draggable={false}
         className="pointer-events-none absolute left-1/2 z-20 max-w-none -translate-x-1/2 select-none"
         style={{
-          width: isLeader ? "205px" : "205px",
-          bottom: isLeader ? "-135px" : "-140px",
+          width: isLeader ? "118px" : "112px",
+          bottom: "0px",
         }}
       />
     </div>
