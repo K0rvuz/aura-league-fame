@@ -476,29 +476,6 @@ function Index() {
             {players.map((player, i) => {
               const hasVoted = voted[player.id] !== undefined;
               const isPending = pending === player.id;
-              const displayRank = deferredSearch
-                ? i + 1
-                : (page - 1) * PAGE_SIZE + i + 1;
-              const isSigma = !deferredSearch && displayRank === 1;
-              const isMogged = player.aura < 0;
-              const topTenStrength =
-                !deferredSearch && displayRank <= 10
-                  ? (11 - displayRank) / 10
-                  : 0;
-              const topTenNameStyle =
-                topTenStrength > 0
-                  ? {
-                      textShadow: [
-                        `0 0 ${Math.round(2 + topTenStrength * 3)}px rgba(200, 162, 74, ${(0.20 + topTenStrength * 0.35).toFixed(2)})`,
-                        `0 0 ${Math.round(5 + topTenStrength * 7)}px rgba(10, 200, 185, ${(0.12 + topTenStrength * 0.32).toFixed(2)})`,
-                        `0 0 ${Math.round(10 + topTenStrength * 14)}px rgba(10, 200, 185, ${(0.05 + topTenStrength * 0.20).toFixed(2)})`,
-                      ].join(", "),
-                      WebkitTextStroke:
-                        displayRank <= 3
-                          ? `${(0.15 + topTenStrength * 0.20).toFixed(2)}px rgba(255,255,255,${(0.12 + topTenStrength * 0.18).toFixed(2)})`
-                          : undefined,
-                    }
-                  : undefined;
               return (
                 <div
                   key={player.id}
@@ -515,38 +492,12 @@ function Index() {
                     />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-sigil">#{displayRank}</span>
+                        <span className="text-xs font-bold text-sigil">#{i + 1}</span>
                         <span className="text-[11px] uppercase tracking-widest text-crest">
                           {player.rank_label}
                         </span>
-                        {isSigma && (
-                          <span
-                            title="Top 1 do ranking"
-                            className="border border-sigil/55 bg-sigil/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sigilsoft"
-                          >
-                            Sigma 🗿
-                          </span>
-                        )}
-                        {isMogged && (
-                          <span
-                            title="Aura negativa"
-                            className="border border-destructive/50 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-destructive"
-                          >
-                            Mogged
-                          </span>
-                        )}
                       </div>
-                      <div
-                        className={`truncate font-display font-bold tracking-wide transition-[text-shadow] duration-500 ${
-                          topTenStrength > 0 ? "text-ink" : ""
-                        }`}
-                        style={topTenNameStyle}
-                        title={
-                          topTenStrength > 0
-                            ? `Top ${displayRank} · intensidade de aura ${Math.round(topTenStrength * 100)}%`
-                            : undefined
-                        }
-                      >
+                      <div className="truncate font-display font-bold tracking-wide">
                         {player.name}
                       </div>
                     </div>
