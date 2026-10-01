@@ -142,12 +142,24 @@ async function processJob(job:Job){
     const icon=`https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${sum.profileIconId}.png`;
 
     if(existingByPuuid){
-      await updatePlayerIdentityByPuuid(acc.puuid,{
-        name,
-        rank_label:rankLabel,
-        icon,
-        region:job.region,
-      });
+      try{
+        await updatePlayerIdentityByPuuid(acc.puuid,{
+          name,
+          rank_label:rankLabel,
+          icon,
+          region:job.region,
+        });
+      }catch(error){
+        const code=error&&typeof error==="object"&&"code" in error?String(error.code):"";
+        if(code==="23505"){
+          // Outro registro já possui o Riot ID retornado pela Riot.
+          // É um conflito definitivo, então não desperdiçamos retries.
+          await complete(job.id,name,"duplicate");
+          return;
+        }
+        throw error;
+      }
+
       await complete(job.id,name,"completed");
       return;
     }
