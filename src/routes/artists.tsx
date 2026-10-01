@@ -16,6 +16,7 @@ export const Route = createFileRoute("/artists")({
 
 const links = [
   { label: "Linktree", href: "https://linktr.ee/Kanu_M" },
+  { label: "Ko-fi", href: "https://ko-fi.com/miaucookies" },
   { label: "ArtStation", href: "https://www.artstation.com/k4nu" },
   { label: "Instagram", href: "https://www.instagram.com/miau_c00kies/" },
   { label: "TikTok", href: "https://www.tiktok.com/@miau_c00kies" },
