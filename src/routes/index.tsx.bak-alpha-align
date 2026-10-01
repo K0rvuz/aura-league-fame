@@ -150,7 +150,7 @@ function FeaturedPlayerCard({
         className="pointer-events-none absolute left-1/2 z-20 max-w-none -translate-x-1/2 select-none"
         style={{
           width: isLeader ? "118px" : "112px",
-          bottom: isLeader ? "-10px" : "0px",
+          bottom: "0px",
         }}
       />
     </div>
