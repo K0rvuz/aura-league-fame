@@ -70,9 +70,10 @@ function FeaturedPlayerCard({
   const isMogged = (player?.aura ?? 0) < 0;
 
   return (
-    <div
-      className="relative min-w-0 overflow-hidden border p-3"
-      style={{
+    <div className="relative min-w-0 pb-16">
+      <div
+        className="relative min-w-0 overflow-hidden border p-3"
+        style={{
         borderColor: isLeader
           ? "rgba(34, 211, 238, 0.42)"
           : "rgba(109, 40, 217, 0.46)",
@@ -139,6 +140,19 @@ function FeaturedPlayerCard({
       ) : (
         <div className="py-3 text-xs text-mist/70">Aguardando ranking…</div>
       )}
+      </div>
+
+      <img
+        aria-hidden="true"
+        src={isLeader ? "/rank-tags/alfa_super_alfa_plus.png" : "/rank-tags/beta.png"}
+        alt=""
+        draggable={false}
+        className="pointer-events-none absolute left-1/2 z-20 max-w-none -translate-x-1/2 select-none"
+        style={{
+          width: isLeader ? "205px" : "205px",
+          bottom: isLeader ? "-135px" : "-140px",
+        }}
+      />
     </div>
   );
 }
