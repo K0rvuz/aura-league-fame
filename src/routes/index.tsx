@@ -2,7 +2,7 @@
 import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { addRiotPlayer, getPlayers, REGIONS, voteAura } from "@/lib/players.functions";
+import { addRiotPlayer, getPlayers, getRiotPlayerImportStatus, REGIONS, voteAura } from "@/lib/players.functions";
 import { AdSlot } from "@/components/ad-slot";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -65,11 +65,13 @@ function Index() {
   const [region, setRegion] = useState("BR1");
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [importRequestId, setImportRequestId] = useState<string | null>(null);
 
   const quoteCache = useRef<Record<string, string | null>>({});
 
   const getPlayersFn = useServerFn(getPlayers);
   const addPlayerFn = useServerFn(addRiotPlayer);
+  const getImportStatusFn = useServerFn(getRiotPlayerImportStatus);
   const voteAuraFn = useServerFn(voteAura);
   const deferredSearch = useDeferredValue(search.trim());
   const pageCount = Math.max(1, Math.ceil(totalPlayers / PAGE_SIZE));
@@ -160,22 +162,107 @@ function Index() {
     }
   }
 
+  useEffect(() => {
+    if (!importRequestId) return;
+
+    let cancelled = false;
+    let timeoutId: number | undefined;
+
+    const checkStatus = async () => {
+      try {
+        const result = await getImportStatusFn({ data: { requestId: importRequestId } });
+        if (cancelled) return;
+
+        if (!result.found) {
+          setAddMsg({ ok: false, text: "Não foi possível acompanhar essa solicitação." });
+          setImportRequestId(null);
+          return;
+        }
+
+        if (result.status === "completed") {
+          setAddMsg({
+            ok: true,
+            text: `${result.name ?? result.riotId} foi adicionado ao ranking.`,
+          });
+          setImportRequestId(null);
+          return;
+        }
+
+        if (result.status === "duplicate") {
+          setAddMsg({
+            ok: false,
+            text: `${result.name ?? result.riotId} já está no ranking.`,
+          });
+          setImportRequestId(null);
+          return;
+        }
+
+        if (result.status === "failed") {
+          setAddMsg({
+            ok: false,
+            text: result.error ?? "Não foi possível adicionar o jogador.",
+          });
+          setImportRequestId(null);
+          return;
+        }
+
+        setAddMsg({
+          ok: true,
+          text:
+            result.status === "processing"
+              ? "Validando jogador com a Riot…"
+              : "Jogador na fila de validação…",
+        });
+
+        timeoutId = window.setTimeout(checkStatus, 2_500);
+      } catch {
+        if (!cancelled) {
+          timeoutId = window.setTimeout(checkStatus, 5_000);
+        }
+      }
+    };
+
+    void checkStatus();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [getImportStatusFn, importRequestId]);
+
   async function submitPlayer(e: React.FormEvent) {
     e.preventDefault();
+
     if (!/^[^#]{3,16}#[^#]{2,5}$/.test(riotId.trim())) {
       setAddMsg({ ok: false, text: "Use o formato Nick#TAG." });
       return;
     }
+
     setAdding(true);
     setAddMsg(null);
+
     try {
-      const res = await addPlayerFn({ data: { riotId: riotId.trim(), region } });
+      const res = await addPlayerFn({
+        data: { riotId: riotId.trim(), region },
+      });
+
       if (res.ok) {
-        setAddMsg({ ok: true, text: `${res.name} foi adicionado ao ranking.` });
+        setImportRequestId(res.requestId);
+        setAddMsg({
+          ok: true,
+          text: res.alreadyQueued
+            ? "Esse jogador já está na fila de validação."
+            : "Jogador adicionado à fila de validação.",
+        });
         setRiotId("");
-      } else setAddMsg({ ok: false, text: res.error });
+      } else {
+        setAddMsg({ ok: false, text: res.error });
+      }
     } catch {
-      setAddMsg({ ok: false, text: "Não foi possível adicionar o jogador. Tente novamente." });
+      setAddMsg({
+        ok: false,
+        text: "Não foi possível colocar o jogador na fila. Tente novamente.",
+      });
     } finally {
       setAdding(false);
     }
@@ -287,7 +374,7 @@ function Index() {
             disabled={adding}
             className="border border-sigil/60 bg-sigil/15 px-4 py-2 text-sm font-semibold text-sigilsoft hover:bg-sigil/25 disabled:opacity-50"
           >
-            {adding ? "Verificando…" : "Invocar"}
+            {adding ? "Enfileirando…" : "Invocar"}
           </button>
         </form>
         {addMsg && (

@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "quotes": "node scripts/quotes.mjs"
+    "quotes": "node scripts/quotes.mjs",
+    "queue": "node scripts/import-queue.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
