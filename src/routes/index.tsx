@@ -18,6 +18,14 @@ type Player = {
   quote: string | null;
 };
 
+type FeaturedPlayer = {
+  id: string;
+  name: string;
+  rank_label: string;
+  icon: string;
+  aura: number;
+};
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -49,6 +57,92 @@ function formatDelta(d: number): string {
   return d > 0 ? `+${d / 1000}k` : `−${Math.abs(d) / 1000}k`;
 }
 
+function FeaturedPlayerCard({
+  player,
+  label,
+  kind,
+}: {
+  player: FeaturedPlayer | null;
+  label: string;
+  kind: "leader" | "lowest";
+}) {
+  const isLeader = kind === "leader";
+  const isMogged = (player?.aura ?? 0) < 0;
+
+  return (
+    <div
+      className="relative min-w-0 overflow-hidden border p-3"
+      style={{
+        borderColor: isLeader
+          ? "rgba(34, 211, 238, 0.42)"
+          : "rgba(109, 40, 217, 0.46)",
+        background: isLeader
+          ? "linear-gradient(135deg, rgba(34,211,238,0.09), rgba(37,99,235,0.05) 48%, rgba(76,29,149,0.10))"
+          : "linear-gradient(135deg, rgba(76,29,149,0.13), rgba(37,99,235,0.05) 52%, rgba(34,211,238,0.06))",
+        boxShadow: isLeader
+          ? "inset 0 0 24px rgba(34,211,238,0.035)"
+          : "inset 0 0 24px rgba(76,29,149,0.055)",
+      }}
+    >
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, rgba(34,211,238,0.75), rgba(99,102,241,0.65), rgba(109,40,217,0.75), transparent)",
+        }}
+      />
+
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.28em] text-mist">
+          {label}
+        </span>
+        {isLeader ? (
+          <span className="border border-cyan-400/35 bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-200">
+            Sigma 🗿
+          </span>
+        ) : isMogged ? (
+          <span className="border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-200">
+            Mogged
+          </span>
+        ) : null}
+      </div>
+
+      {player ? (
+        <div className="flex min-w-0 items-center gap-3">
+          <img
+            src={player.icon}
+            alt={`Ícone de ${player.name}`}
+            loading="lazy"
+            width={44}
+            height={44}
+            className="size-11 shrink-0 rounded-sm object-cover ring-1 ring-cyan-300/20"
+          />
+          <div className="min-w-0">
+            <div className="truncate font-display text-sm font-bold tracking-wide text-ink">
+              {player.name}
+            </div>
+            <div className="mt-0.5 truncate text-[9px] uppercase tracking-[0.18em] text-mist/75">
+              {player.rank_label}
+            </div>
+            <div
+              className={`mt-1 text-lg font-bold tabular-nums ${
+                player.aura < 0 ? "text-violet-300" : "text-cyan-200"
+              }`}
+            >
+              {formatAura(player.aura)}
+              <span className="ml-1 text-[9px] font-medium uppercase tracking-widest text-mist">
+                aura
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="py-3 text-xs text-mist/70">Aguardando ranking…</div>
+      )}
+    </div>
+  );
+}
+
 function Index() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +151,9 @@ function Index() {
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [playerCount, setPlayerCount] = useState(0);
   const [totalAura, setTotalAura] = useState(0);
+  const [leader, setLeader] = useState<FeaturedPlayer | null>(null);
+  const [lowest, setLowest] = useState<FeaturedPlayer | null>(null);
+  const [hoveredPlayerId, setHoveredPlayerId] = useState<string | null>(null);
   const [voted, setVoted] = useState<Record<string, number>>({});
   const [pending, setPending] = useState<string | null>(null);
   const [ticked, setTicked] = useState<string | null>(null);
@@ -115,6 +212,8 @@ function Index() {
             setTotalPlayers(result.total);
             setPlayerCount(result.playerCount);
             setTotalAura(result.totalAura);
+            setLeader(result.leader ?? null);
+            setLowest(result.lowest ?? null);
           }
         } catch {
           if (!cancelled) {
@@ -356,19 +455,25 @@ function Index() {
           </div>
         </header>
 
-        <section className="mb-8 mt-10 max-w-2xl">
-          <div className="mb-3 text-xs uppercase tracking-[0.4em] text-crest">
-            Temporada 2026 · Ranking
+        <section className="mb-8 mt-10 grid gap-7 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-center">
+          <div className="min-w-0">
+            <div className="mb-3 text-xs uppercase tracking-[0.4em] text-crest">
+              Temporada 2026 · Ranking
+            </div>
+            <h1 className="font-display text-4xl leading-[1.05] sm:text-5xl">
+              Quem tem mais <span className="text-sigil">aura?</span>
+              <br />
+              <span className="text-mist">A comunidade decide.</span>
+            </h1>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-mist/90 sm:text-base">
+              Vote nos jogadores e acompanhe o ranking em tempo real.
+            </p>
           </div>
-          <h1 className="font-display text-4xl leading-[1.05] sm:text-5xl">
-            Quem tem mais <span className="text-sigil">aura?</span>
-            <br />
-            <span className="text-mist">A comunidade decide.</span>
-          </h1>
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-mist/90 sm:text-base">
-            Vote nos jogadores e acompanhe o ranking em tempo real.
 
-          </p>
+          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2">
+            <FeaturedPlayerCard player={leader} label="Maior aura" kind="leader" />
+            <FeaturedPlayerCard player={lowest} label="Menor aura" kind="lowest" />
+          </div>
         </section>
 
         <section className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -481,28 +586,46 @@ function Index() {
                 : (page - 1) * PAGE_SIZE + i + 1;
               const isSigma = !deferredSearch && displayRank === 1;
               const isMogged = player.aura < 0;
-              const topTenStrength =
-                !deferredSearch && displayRank <= 10
-                  ? (11 - displayRank) / 10
-                  : 0;
-              const topTenNameStyle =
-                topTenStrength > 0
-                  ? {
-                      textShadow: [
-                        `0 0 ${Math.round(2 + topTenStrength * 3)}px rgba(200, 162, 74, ${(0.20 + topTenStrength * 0.35).toFixed(2)})`,
-                        `0 0 ${Math.round(5 + topTenStrength * 7)}px rgba(10, 200, 185, ${(0.12 + topTenStrength * 0.32).toFixed(2)})`,
-                        `0 0 ${Math.round(10 + topTenStrength * 14)}px rgba(10, 200, 185, ${(0.05 + topTenStrength * 0.20).toFixed(2)})`,
-                      ].join(", "),
-                      WebkitTextStroke:
-                        displayRank <= 3
-                          ? `${(0.15 + topTenStrength * 0.20).toFixed(2)}px rgba(255,255,255,${(0.12 + topTenStrength * 0.18).toFixed(2)})`
-                          : undefined,
-                    }
-                  : undefined;
+              const hasRankAura =
+                !deferredSearch && page === 1 && displayRank <= 10;
+              const topTenStrength = hasRankAura
+                ? (11 - displayRank) / 10
+                : 0;
+              const isAuraHovered =
+                hasRankAura && hoveredPlayerId === player.id;
+              const cardAuraStyle = isAuraHovered
+                ? {
+                    borderColor: `rgba(34, 211, 238, ${(
+                      0.24 + topTenStrength * 0.56
+                    ).toFixed(2)})`,
+                    boxShadow: [
+                      `0 0 ${Math.round(4 + topTenStrength * 8)}px rgba(34, 211, 238, ${(
+                        0.10 + topTenStrength * 0.34
+                      ).toFixed(2)})`,
+                      `0 0 ${Math.round(10 + topTenStrength * 18)}px rgba(59, 130, 246, ${(
+                        0.07 + topTenStrength * 0.24
+                      ).toFixed(2)})`,
+                      `0 0 ${Math.round(18 + topTenStrength * 30)}px rgba(109, 40, 217, ${(
+                        0.05 + topTenStrength * 0.24
+                      ).toFixed(2)})`,
+                    ].join(", "),
+                    transform: `translateY(-${Math.max(
+                      1,
+                      Math.round(topTenStrength * 2),
+                    )}px)`,
+                  }
+                : undefined;
               return (
                 <div
                   key={player.id}
-                  className="clip-card group border border-hexline/60 bg-abyss/50 transition-colors hover:border-sigil/50"
+                  onMouseEnter={() => {
+                    if (hasRankAura) setHoveredPlayerId(player.id);
+                  }}
+                  onMouseLeave={() => {
+                    if (hoveredPlayerId === player.id) setHoveredPlayerId(null);
+                  }}
+                  style={cardAuraStyle}
+                  className="clip-card group border border-hexline/60 bg-abyss/50 transition-[border-color,box-shadow,transform] duration-300 hover:border-sigil/50"
                 >
                   <div className="flex items-center gap-3 px-4 pt-4">
                     <img
@@ -536,17 +659,7 @@ function Index() {
                           </span>
                         )}
                       </div>
-                      <div
-                        className={`truncate font-display font-bold tracking-wide transition-[text-shadow] duration-500 ${
-                          topTenStrength > 0 ? "text-ink" : ""
-                        }`}
-                        style={topTenNameStyle}
-                        title={
-                          topTenStrength > 0
-                            ? `Top ${displayRank} · intensidade de aura ${Math.round(topTenStrength * 100)}%`
-                            : undefined
-                        }
-                      >
+                      <div className="truncate font-display font-bold tracking-wide">
                         {player.name}
                       </div>
                     </div>

@@ -10,6 +10,14 @@ export type Player = {
   quotes: string[];
 };
 
+export type FeaturedPlayer = {
+  id: string;
+  name: string;
+  rank_label: string;
+  icon: string;
+  aura: number;
+};
+
 type PlayerInsert = {
   name: string;
   rank_label: string;
@@ -23,11 +31,15 @@ type RankingResult = {
   total: number;
   playerCount: number;
   totalAura: number;
+  leader: FeaturedPlayer | null;
+  lowest: FeaturedPlayer | null;
 };
 
 type Stats = {
   playerCount: number;
   totalAura: number;
+  leader: FeaturedPlayer | null;
+  lowest: FeaturedPlayer | null;
 };
 
 type RankingCacheEntry = {
@@ -212,9 +224,19 @@ type AuraRow = QueryResultRow & {
   aura: string;
 };
 
+type FeaturedPlayerRow = {
+  id: string;
+  name: string;
+  rank_label: string;
+  icon: string;
+  aura: number | string;
+};
+
 type StatsRow = QueryResultRow & {
   player_count: number;
   total_aura: string;
+  leader: FeaturedPlayerRow | null;
+  lowest: FeaturedPlayerRow | null;
 };
 
 type PagePlayer = {
@@ -239,6 +261,20 @@ function mapPlayers(players: PagePlayer[]): Player[] {
   }));
 }
 
+function mapFeaturedPlayer(
+  player: FeaturedPlayerRow | null,
+): FeaturedPlayer | null {
+  if (!player) return null;
+
+  return {
+    id: player.id,
+    name: player.name,
+    rank_label: player.rank_label,
+    icon: player.icon,
+    aura: Number(player.aura),
+  };
+}
+
 async function getStatsCached(): Promise<Stats> {
   const now = Date.now();
 
@@ -257,7 +293,31 @@ async function getStatsCached(): Promise<Stats> {
     const result = await pool.query<StatsRow>(`
       SELECT
         COUNT(*)::INT AS player_count,
-        COALESCE(SUM(aura), 0)::TEXT AS total_aura
+        COALESCE(SUM(aura), 0)::TEXT AS total_aura,
+        (
+          SELECT json_build_object(
+            'id', p.id,
+            'name', p.name,
+            'rank_label', p.rank_label,
+            'icon', p.icon,
+            'aura', p.aura::TEXT
+          )
+          FROM players p
+          ORDER BY p.aura DESC, p.name ASC
+          LIMIT 1
+        ) AS leader,
+        (
+          SELECT json_build_object(
+            'id', p.id,
+            'name', p.name,
+            'rank_label', p.rank_label,
+            'icon', p.icon,
+            'aura', p.aura::TEXT
+          )
+          FROM players p
+          ORDER BY p.aura ASC, p.name DESC
+          LIMIT 1
+        ) AS lowest
       FROM players
     `);
 
@@ -265,6 +325,8 @@ async function getStatsCached(): Promise<Stats> {
     const stats = {
       playerCount: Number(row?.player_count ?? 0),
       totalAura: Number(row?.total_aura ?? 0),
+      leader: mapFeaturedPlayer(row?.leader ?? null),
+      lowest: mapFeaturedPlayer(row?.lowest ?? null),
     };
 
     globalDatabase.auraStatsCacheValue = stats;
@@ -319,6 +381,8 @@ async function loadRanking(search: string, page: number): Promise<RankingResult>
       total: stats.playerCount,
       playerCount: stats.playerCount,
       totalAura: stats.totalAura,
+      leader: stats.leader,
+      lowest: stats.lowest,
     };
   }
 
@@ -368,6 +432,8 @@ async function loadRanking(search: string, page: number): Promise<RankingResult>
     total: Number(row?.total ?? 0),
     playerCount: stats.playerCount,
     totalAura: stats.totalAura,
+    leader: stats.leader,
+    lowest: stats.lowest,
   };
 }
 
