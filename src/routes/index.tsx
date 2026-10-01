@@ -77,8 +77,8 @@ function FeaturedPlayerCard({
           ? "rgba(34, 211, 238, 0.42)"
           : "rgba(109, 40, 217, 0.46)",
         background: isLeader
-          ? "linear-gradient(135deg, rgba(34,211,238,0.09), rgba(37,99,235,0.05) 48%, rgba(76,29,149,0.10))"
-          : "linear-gradient(135deg, rgba(76,29,149,0.13), rgba(37,99,235,0.05) 52%, rgba(34,211,238,0.06))",
+          ? "linear-gradient(0deg, rgba(34,211,238,0.10) 0%, rgba(37,99,235,0.055) 48%, rgba(76,29,149,0.12) 100%)"
+          : "linear-gradient(0deg, rgba(34,211,238,0.065) 0%, rgba(37,99,235,0.05) 48%, rgba(76,29,149,0.145) 100%)",
         boxShadow: isLeader
           ? "inset 0 0 24px rgba(34,211,238,0.035)"
           : "inset 0 0 24px rgba(76,29,149,0.055)",
@@ -595,18 +595,60 @@ function Index() {
                 hasRankAura && hoveredPlayerId === player.id;
               const cardAuraStyle = isAuraHovered
                 ? {
-                    borderColor: `rgba(34, 211, 238, ${(
-                      0.24 + topTenStrength * 0.56
+                    borderColor: `rgba(59, 130, 246, ${(
+                      0.20 + topTenStrength * 0.48
                     ).toFixed(2)})`,
+                    backgroundImage: `linear-gradient(
+                      180deg,
+                      rgba(76, 29, 149, ${(
+                        0.035 + topTenStrength * 0.085
+                      ).toFixed(3)}) 0%,
+                      rgba(59, 130, 246, ${(
+                        0.025 + topTenStrength * 0.055
+                      ).toFixed(3)}) 48%,
+                      rgba(34, 211, 238, ${(
+                        0.040 + topTenStrength * 0.090
+                      ).toFixed(3)}) 100%
+                    )`,
                     boxShadow: [
-                      `0 0 ${Math.round(4 + topTenStrength * 8)}px rgba(34, 211, 238, ${(
-                        0.10 + topTenStrength * 0.34
+                      // Bottom smoke: cyan.
+                      `0 ${Math.round(
+                        5 + topTenStrength * 14,
+                      )}px ${Math.round(
+                        15 + topTenStrength * 34,
+                      )}px ${Math.round(
+                        topTenStrength * 10,
+                      )}px rgba(34, 211, 238, ${(
+                        0.07 + topTenStrength * 0.27
                       ).toFixed(2)})`,
-                      `0 0 ${Math.round(10 + topTenStrength * 18)}px rgba(59, 130, 246, ${(
-                        0.07 + topTenStrength * 0.24
+
+                      // Middle bridge: blue.
+                      `0 0 ${Math.round(
+                        12 + topTenStrength * 28,
+                      )}px ${Math.round(
+                        topTenStrength * 6,
+                      )}px rgba(59, 130, 246, ${(
+                        0.05 + topTenStrength * 0.19
                       ).toFixed(2)})`,
-                      `0 0 ${Math.round(18 + topTenStrength * 30)}px rgba(109, 40, 217, ${(
-                        0.05 + topTenStrength * 0.24
+
+                      // Top smoke: dark purple.
+                      `0 -${Math.round(
+                        5 + topTenStrength * 14,
+                      )}px ${Math.round(
+                        17 + topTenStrength * 38,
+                      )}px ${Math.round(
+                        topTenStrength * 11,
+                      )}px rgba(76, 29, 149, ${(
+                        0.07 + topTenStrength * 0.29
+                      ).toFixed(2)})`,
+
+                      // Large soft halo makes the aura feel smoky instead of neon.
+                      `0 0 ${Math.round(
+                        22 + topTenStrength * 44,
+                      )}px ${Math.round(
+                        topTenStrength * 5,
+                      )}px rgba(91, 33, 182, ${(
+                        0.025 + topTenStrength * 0.10
                       ).toFixed(2)})`,
                     ].join(", "),
                     transform: `translateY(-${Math.max(
